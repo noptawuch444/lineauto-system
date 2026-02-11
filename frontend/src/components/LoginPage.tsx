@@ -31,8 +31,10 @@ const LoginPage: React.FC = () => {
             <div className="login-container">
                 <div className="login-card">
                     <div className="login-header">
-                        <div className="logo-circle">🐯</div>
-                        <h1>Lotto Gold PRO</h1>
+                        <div className="logo-circle" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <h1>GoldSync AutoBot</h1>
                         <p className="subtitle">ระบบจัดการข้อความอัตโนมัติ</p>
                     </div>
 
