@@ -1,0 +1,310 @@
+.group-management {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.group-management h2 {
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+/* LIFF URL Section */
+.liff-url-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.liff-url-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.liff-description {
+    margin-bottom: 15px;
+    font-size: 14px;
+    opacity: 0.95;
+}
+
+.liff-url-box {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.liff-url {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.btn-copy-liff {
+    padding: 10px 20px;
+    background: white;
+    color: #667eea;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-copy-liff:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.liff-note {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.create-user-form {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.create-user-form .form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.create-user-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.create-user-form input {
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.create-user-form input:focus {
+    outline: 2px solid #fff;
+}
+
+/* Management Grid */
+.management-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+@media (max-width: 768px) {
+    .management-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Panels */
+.users-panel,
+.groups-panel {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.users-panel h3,
+.groups-panel h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.panel-description {
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 15px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #95a5a6;
+}
+
+.empty-state p {
+    margin: 10px 0;
+}
+
+.empty-hint {
+    font-size: 13px;
+    font-style: italic;
+}
+
+.user-line-id {
+    color: #7f8c8d;
+    font-size: 12px;
+    font-family: monospace;
+    display: block;
+    margin-top: 5px;
+}
+
+/* Users List */
+.users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.user-item {
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-item:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.user-item.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+}
+
+.user-info strong {
+    display: block;
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.user-code {
+    color: #7f8c8d;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.assigned-count {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #95a5a6;
+}
+
+.btn-copy {
+    padding: 8px 15px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+/* Groups List */
+.groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.group-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.group-checkbox:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+}
+
+.group-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.group-name {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.no-selection {
+    text-align: center;
+    color: #95a5a6;
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-save {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: white;
+    color: #667eea;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+.btn-save {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled,
+.btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

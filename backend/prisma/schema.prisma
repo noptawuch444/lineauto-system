@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ScheduledMessage {
+  id            String   @id @default(uuid())
+  content       String
+  imageUrl      String?
+  imageUrls     String?  // JSON array of image URLs
+  scheduledTime DateTime
+  status        String   @default("pending") // pending, sent, failed, cancelled
+  targetType    String   // user, group, room
+  targetIds     String   // JSON array of target IDs
+  channelAccessToken String? // Optional specific token for multi-bot support
+  createdByUserId String?  // User ID who created this message (for public scheduler)
+  userIdentifier  String?  // User code or identifier for tracking
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  logs          MessageLog[]
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  name        String   // ชื่อเทมเพลต เช่น "ส่งข่าวกลุ่ม A"
+  description String?  // คำอธิบายเทมเพลต
+  category    String?  // หมวดหมู่ เช่น "lottery", "promotion", "news"
+  targetType  String   // "user", "group", "room"
+  targetIds   String   // JSON array of target IDs
+  publicCode  String   @unique // รหัสสำหรับ public link (เช่น "abc123")
+  isActive    Boolean  @default(true) // เปิด/ปิดการใช้งาน
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MessageLog {
+  id        String   @id @default(uuid())
+  messageId String
+  sentAt    DateTime @default(now())
+  status    String   // success, failed
+  error     String?
+  
+  message   ScheduledMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id           String   @id @default(uuid())
+  lineUserId   String   @unique
+  displayName  String
+  pictureUrl   String?
+  userCode     String?  @unique // Unique code for public link (e.g., "user-a")
+  role         String   @default("user") // "admin" | "user"
+  status       String   @default("active") // "active" | "inactive"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedGroups LineGroup[]
+}
+
+model LineGroup {
+  id          String   @id @default(uuid())
+  groupId     String   @unique
+  groupName   String?
+  pictureUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignedUsers User[]
+}
