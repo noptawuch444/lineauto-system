@@ -274,10 +274,10 @@ export default function PublicScheduler() {
             <header className="g-nav">
                 <div className="g-nav-l">
                     <div className="g-logo-wrap">
-                        <img src="/logo-pro.jpg" onError={e => e.currentTarget.src = 'https://ui-avatars.com/api/?name=LG&background=1a1710&color=d4a337&size=40&bold=true&font-size=0.4'} alt="" />
+                        <img src="/logo.jpg" alt="GoldSync" />
                     </div>
                     <div>
-                        <div className="g-brand">Lotto Gold PRO <span>EDITION</span></div>
+                        <div className="g-brand">GoldSync AutoBot <span>AUTOBOT</span></div>
                         <div className="g-tpl"><FileText size={14} className="g-icon-inline" /> เทมเพลต: <b>{template?.name || '—'}</b></div>
                     </div>
                 </div>

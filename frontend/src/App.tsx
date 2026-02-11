@@ -24,10 +24,10 @@ function AdminApp() {
                 <nav className="top-nav">
                     <div className="nav-brand-wrap">
                         <div className="nav-logo-box">
-                            <img src="/logo-pro.jpg" onError={e => e.currentTarget.src = 'https://ui-avatars.com/api/?name=LG&background=1a1710&color=d4a337&size=40&bold=true&font-size=0.4'} alt="" />
+                            <img src="/logo.jpg" alt="GoldSync Logo" />
                         </div>
                         <div className="nav-brand-info">
-                            <div className="nav-brand-name">Lotto Gold PRO <span>ADMIN</span></div>
+                            <div className="nav-brand-name">GoldSync AutoBot <span>ADMIN</span></div>
                             <div className="nav-brand-sub"><Database size={12} /> ระบบจัดการหลังบ้าน</div>
                         </div>
                     </div>
