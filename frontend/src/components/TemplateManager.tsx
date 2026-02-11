@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageTemplate, CreateTemplateRequest, UpdateTemplateRequest } from '../types';
+import { MessageTemplate, CreateTemplateRequest } from '../types';
 import { templateApi } from '../services/api';
 
 const TemplateManager: React.FC = () => {

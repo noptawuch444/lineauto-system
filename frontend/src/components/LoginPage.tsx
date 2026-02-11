@@ -1,9 +1,8 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
-    const { login } = useAuth();
+    // login is currently unused in the mocked handler
 
     const handleLineLogin = () => {
         // In production, this would use LIFF SDK
