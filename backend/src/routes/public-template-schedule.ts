@@ -109,7 +109,7 @@ router.get('/template/:publicCode/messages', async (req, res) => {
         log(`=======================================`);
 
         // Parse JSON fields
-        const parsedMessages = messages.map(msg => ({
+        const parsedMessages = messages.map((msg: any) => ({
             ...msg,
             targetIds: msg.targetIds ? JSON.parse(msg.targetIds) : [],
             imageUrls: msg.imageUrls ? JSON.parse(msg.imageUrls) : (msg.imageUrl ? [msg.imageUrl] : [])
