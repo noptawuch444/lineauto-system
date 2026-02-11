@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import './PublicScheduler.css';
 
-const API = '/api';
+const API = import.meta.env.VITE_API_URL || '/api';
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id'; // ปรับเปลี่ยนลิงก์ติดต่อตรงนี้
 
 interface Template { id: string; name: string; description?: string; }
