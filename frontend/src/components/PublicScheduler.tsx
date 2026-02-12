@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import axios from 'axios';
@@ -215,17 +215,21 @@ export default function PublicScheduler() {
     const fmtTime = (s: string) => { try { return format(new Date(s), 'dd/MM/yyyy HH:mm'); } catch { return s; } };
     const fmtSize = (b: number) => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
 
-    // Group by date
-    const groups: [string, Message[]][] = [];
-    const gm: Record<string, Message[]> = {};
-    messages.forEach(m => {
-        const d = new Date(m.scheduledTime), now = new Date(), tmr = new Date(now); tmr.setDate(tmr.getDate() + 1);
-        let label = format(d, 'd MMM yyyy');
-        if (d.toDateString() === now.toDateString()) label = `วันนี้ (${format(d, 'd MMM')})`;
-        else if (d.toDateString() === tmr.toDateString()) label = `พรุ่งนี้ (${format(d, 'd MMM')})`;
-        (gm[label] ??= []).push(m);
-    });
-    Object.entries(gm).forEach(([k, v]) => groups.push([k, v]));
+    // Memoized grouping logic
+    const groups = useMemo(() => {
+        const gm: Record<string, Message[]> = {};
+        messages.forEach(m => {
+            const d = new Date(m.scheduledTime), now = new Date(), tmr = new Date(now);
+            tmr.setDate(tmr.getDate() + 1);
+
+            let label = format(d, 'd MMM yyyy');
+            if (d.toDateString() === now.toDateString()) label = `วันนี้ (${format(d, 'd MMM')})`;
+            else if (d.toDateString() === tmr.toDateString()) label = `พรุ่งนี้ (${format(d, 'd MMM')})`;
+
+            (gm[label] ??= []).push(m);
+        });
+        return Object.entries(gm) as [string, Message[]][];
+    }, [messages]);
 
     const getImages = (m: Message): string[] => m.imageUrls?.length ? m.imageUrls : m.imageUrl ? [m.imageUrl] : [];
 

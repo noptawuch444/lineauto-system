@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from './db';
 
 /**
  * Get groups assigned to a user by LINE User ID

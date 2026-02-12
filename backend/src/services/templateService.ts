@@ -1,7 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from './db';
 import { customAlphabet } from 'nanoid';
 
-const prisma = new PrismaClient();
+// Simple in-memory cache for public codes
+const publicCache = new Map<string, any>();
+const CACHE_TTL = 30000; // 30 seconds
 
 // Generate short alphanumeric code
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 8);
@@ -45,9 +47,21 @@ export async function getTemplateById(id: string) {
  * Get template by public code
  */
 export async function getTemplateByPublicCode(publicCode: string) {
-    return await prisma.messageTemplate.findUnique({
+    // Check cache
+    const cached = publicCache.get(publicCode);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        return cached.data;
+    }
+
+    const template = await prisma.messageTemplate.findUnique({
         where: { publicCode }
     });
+
+    if (template) {
+        publicCache.set(publicCode, { data: template, timestamp: Date.now() });
+    }
+
+    return template;
 }
 
 /**

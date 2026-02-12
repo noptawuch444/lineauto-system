@@ -1,8 +1,6 @@
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
 import { sendScheduledMessage } from './lineService';
-
-const prisma = new PrismaClient();
+import prisma from './db';
 
 /**
  * Check for pending messages and send them if it's time
@@ -15,28 +13,22 @@ async function checkAndSendMessages() {
         const pendingMessages = await prisma.scheduledMessage.findMany({
             where: {
                 status: 'pending',
-                scheduledTime: {
-                    lte: now
-                }
-            }
+                scheduledTime: { lte: now }
+            },
+            take: 50 // Bulk process limit per minute
         });
 
-        if (pendingMessages.length === 0) {
-            return;
-        }
+        if (pendingMessages.length === 0) return;
 
-        console.log(`📨 Found ${pendingMessages.length} message(s) to send`);
+        console.log(`📨 [OPTIMIZED] Processing ${pendingMessages.length} message(s) in parallel...`);
 
-        // Process each message
-        for (const message of pendingMessages) {
+        // Process in parallel using Promise.all
+        await Promise.all(pendingMessages.map(async (message) => {
             try {
-                console.log(`Sending message ${message.id}...`);
-
                 const targetIds = JSON.parse(message.targetIds);
-
-                // Send the message via LINE API
                 const imageUrls = message.imageUrls ? JSON.parse(message.imageUrls) : undefined;
 
+                // Send the message via LINE API
                 const result = await sendScheduledMessage(
                     message.targetType,
                     targetIds,
@@ -46,58 +38,32 @@ async function checkAndSendMessages() {
                     message.channelAccessToken || undefined
                 );
 
-                // Update message status
-                if (result.success) {
-                    await prisma.scheduledMessage.update({
-                        where: { id: message.id },
-                        data: { status: 'sent' }
-                    });
+                const finalStatus = result.success ? 'sent' : 'failed';
 
-                    // Create success log
-                    await prisma.messageLog.create({
+                // Concurrent atomic update
+                await prisma.$transaction([
+                    prisma.scheduledMessage.update({
+                        where: { id: message.id },
+                        data: { status: finalStatus as any }
+                    }),
+                    prisma.messageLog.create({
                         data: {
                             messageId: message.id,
-                            status: 'success',
+                            status: finalStatus,
+                            error: result.success ? null : (result.error || 'Unknown error')
                         }
-                    });
+                    })
+                ]);
 
-                    console.log(`✅ Message ${message.id} sent successfully`);
-                } else {
-                    await prisma.scheduledMessage.update({
-                        where: { id: message.id },
-                        data: { status: 'failed' }
-                    });
-
-                    // Create error log
-                    await prisma.messageLog.create({
-                        data: {
-                            messageId: message.id,
-                            status: 'failed',
-                            error: result.error || 'Unknown error'
-                        }
-                    });
-
-                    console.error(`❌ Message ${message.id} failed: ${result.error}`);
-                }
-            } catch (error: any) {
-                console.error(`Error processing message ${message.id}:`, error);
-
-                // Update to failed status
+                console.log(`${result.success ? '✅' : '❌'} Message ${message.id} complete: ${finalStatus}`);
+            } catch (err: any) {
+                console.error(`💥 Critical fail for message ${message.id}:`, err.message);
                 await prisma.scheduledMessage.update({
                     where: { id: message.id },
                     data: { status: 'failed' }
-                });
-
-                // Create error log
-                await prisma.messageLog.create({
-                    data: {
-                        messageId: message.id,
-                        status: 'failed',
-                        error: error.message
-                    }
-                });
+                }).catch(() => { });
             }
-        }
+        }));
     } catch (error) {
         console.error('Error in scheduler:', error);
     }

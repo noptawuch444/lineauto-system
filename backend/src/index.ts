@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import messageRoutes from './routes/messages';
@@ -19,6 +20,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(compression());
 app.use(cors());
 // Routes
 app.use('/webhook', (req, res, next) => {

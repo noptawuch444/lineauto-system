@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import {
     Plus, Edit3, Trash2, Power, Copy, ExternalLink,
@@ -60,6 +60,19 @@ export default function TemplateManagement() {
             console.error('Error fetching line groups:', e);
         }
     };
+
+    const memoizedTemplates = useMemo(() => {
+        return templates.map(t => {
+            let parsedIds: string[] = [];
+            try {
+                const p = JSON.parse(t.targetIds);
+                parsedIds = Array.isArray(p) ? p : [t.targetIds];
+            } catch {
+                parsedIds = [t.targetIds];
+            }
+            return { ...t, parsedIds };
+        });
+    }, [templates]);
 
     // Snowfall Effect for Admin Page
     useEffect(() => {
@@ -456,10 +469,8 @@ export default function TemplateManagement() {
                                 <AlertTriangle size={48} />
                                 <p>ไม่พบเทมเพลต กรุณาสร้างจากปุ่มด่านบน</p>
                             </div>
-                        ) : templates.map(template => {
-                            let ids: string[] = [];
-                            try { ids = JSON.parse(template.targetIds); if (!Array.isArray(ids)) ids = [template.targetIds]; }
-                            catch { ids = [template.targetIds]; }
+                        ) : memoizedTemplates.map(template => {
+                            const ids = template.parsedIds;
 
                             return (
                                 <div key={template.id} className={`adm-card ${!template.isActive ? 'adm-inactive' : ''}`}>
