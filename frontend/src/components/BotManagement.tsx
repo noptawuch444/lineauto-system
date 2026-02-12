@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     Bot, Plus, Trash2, Edit3, Save, X,
-    CheckCircle2, XCircle, Loader2, Key, Info, ShieldCheck
+    CheckCircle2, XCircle, Loader2, Key, Info, ShieldCheck, RefreshCw
 } from 'lucide-react';
 import './BotManagement.css';
 
@@ -11,6 +11,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 interface LineBot {
     id: string;
     name: string;
+    basicId?: string | null;
+    pictureUrl?: string | null;
     channelAccessToken: string;
     channelSecret?: string | null;
     isActive: boolean;
@@ -22,11 +24,14 @@ export default function BotManagement() {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [verifying, setVerifying] = useState(false);
 
     // Form states
     const [name, setName] = useState('');
     const [token, setToken] = useState('');
     const [secret, setSecret] = useState('');
+    const [basicId, setBasicId] = useState('');
+    const [pictureUrl, setPictureUrl] = useState('');
 
     useEffect(() => {
         fetchBots();
@@ -44,18 +49,42 @@ export default function BotManagement() {
         }
     };
 
+    const handleVerifyToken = async () => {
+        if (!token) return alert('กรุณาใส่ Channel Access Token ก่อน');
+
+        try {
+            setVerifying(true);
+            const res = await axios.post(`${API_BASE_URL}/bots/verify`, { channelAccessToken: token });
+            const data = res.data;
+
+            setName(data.name);
+            setBasicId(data.basicId);
+            setPictureUrl(data.pictureUrl);
+
+            alert('ดึงข้อมูลบอทสำเร็จ!');
+        } catch (error: any) {
+            alert(error.response?.data?.error || 'ตรวจสอบ Token ไม่สำเร็จ');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!name || !token) return;
 
         try {
+            const payload = {
+                name,
+                channelAccessToken: token,
+                channelSecret: secret,
+                basicId,
+                pictureUrl
+            };
+
             if (editingId) {
-                await axios.put(`${API_BASE_URL}/bots/${editingId}`, {
-                    name, channelAccessToken: token, channelSecret: secret
-                });
+                await axios.put(`${API_BASE_URL}/bots/${editingId}`, payload);
             } else {
-                await axios.post(`${API_BASE_URL}/bots`, {
-                    name, channelAccessToken: token, channelSecret: secret
-                });
+                await axios.post(`${API_BASE_URL}/bots`, payload);
             }
             resetForm();
             fetchBots();
@@ -79,6 +108,8 @@ export default function BotManagement() {
         setName(bot.name);
         setToken(bot.channelAccessToken);
         setSecret(bot.channelSecret || '');
+        setBasicId(bot.basicId || '');
+        setPictureUrl(bot.pictureUrl || '');
         setIsAdding(true);
     };
 
@@ -88,6 +119,8 @@ export default function BotManagement() {
         setName('');
         setToken('');
         setSecret('');
+        setBasicId('');
+        setPictureUrl('');
     };
 
     if (loading && bots.length === 0) {
@@ -121,25 +154,49 @@ export default function BotManagement() {
                     </div>
                     <div className="bm-form-grid">
                         <div className="bm-input-group">
-                            <label>ชื่อบอท (สำหรับจำง่าย)</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                placeholder="เช่น บอทหวยหลัก, บอทสำรอง..."
-                            />
-                        </div>
-                        <div className="bm-input-group">
                             <label>Channel Access Token <Key size={14} /></label>
-                            <textarea
-                                value={token}
-                                onChange={e => setToken(e.target.value)}
-                                placeholder="วาง Token ยาวๆ จาก LINE Developers ที่นี่..."
-                                rows={3}
-                            />
+                            <div className="bm-input-action-row">
+                                <textarea
+                                    value={token}
+                                    onChange={e => setToken(e.target.value)}
+                                    placeholder="วาง Token จาก LINE Developers ที่นี่..."
+                                    rows={3}
+                                />
+                                <button
+                                    className="bm-verify-btn"
+                                    onClick={handleVerifyToken}
+                                    disabled={verifying}
+                                >
+                                    {verifying ? <Loader2 className="bm-spin" size={16} /> : <RefreshCw size={16} />}
+                                    ดึงข้อมูลอัตโนมัติ
+                                </button>
+                            </div>
                         </div>
+
+                        <div className="bm-form-row-2">
+                            <div className="bm-input-group">
+                                <label>ชื่อบอท (จะขึ้นเองเมื่อกดดึงข้อมูล)</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder="ชื่อที่แสดงใน LINE"
+                                />
+                            </div>
+                            <div className="bm-input-group">
+                                <label>LINE ID (Basic ID)</label>
+                                <input
+                                    type="text"
+                                    value={basicId}
+                                    readOnly
+                                    placeholder="@id..."
+                                    className="bm-input-readonly"
+                                />
+                            </div>
+                        </div>
+
                         <div className="bm-input-group">
-                            <label>Channel Secret (ไม่บังคับ)</label>
+                            <label>Channel Secret (ใช้สำหรับ Webhook - ไม่บังคับ)</label>
                             <input
                                 type="text"
                                 value={secret}
@@ -147,6 +204,13 @@ export default function BotManagement() {
                                 placeholder="Channel Secret จากหน้า Basic Settings"
                             />
                         </div>
+
+                        {pictureUrl && (
+                            <div className="bm-profile-preview">
+                                <img src={pictureUrl} alt="Bot Profile" />
+                                <span>ภาพโปรไฟล์บอทที่พบ</span>
+                            </div>
+                        )}
                     </div>
                     <div className="bm-form-actions">
                         <button className="bm-cancel-btn" onClick={resetForm}>ยกเลิก</button>
@@ -165,10 +229,17 @@ export default function BotManagement() {
                             {bot.isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                         </div>
                         <div className="bm-bot-info">
-                            <Bot className="bm-bot-avatar" />
+                            <div className="bm-bot-avatar-box">
+                                {bot.pictureUrl ? (
+                                    <img src={bot.pictureUrl} alt={bot.name} />
+                                ) : (
+                                    <Bot className="bm-bot-avatar-icon" />
+                                )}
+                            </div>
                             <div className="bm-bot-details">
                                 <h3>{bot.name}</h3>
-                                <p>สร้างเมื่อ: {new Date(bot.createdAt).toLocaleDateString('th-TH')}</p>
+                                <p className="bm-bot-id">{bot.basicId || 'ไม่มี ID'}</p>
+                                <p className="bm-bot-date">สร้างเมื่อ: {new Date(bot.createdAt).toLocaleDateString('th-TH')}</p>
                             </div>
                         </div>
                         <div className="bm-token-preview">

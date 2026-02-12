@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { Client } from '@line/bot-sdk';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -20,11 +21,35 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * POST /api/bots/verify - Fetch bot profile from LINE
+ */
+router.post('/verify', async (req, res) => {
+    try {
+        const { channelAccessToken } = req.body;
+        if (!channelAccessToken) return res.status(400).json({ error: 'Token is required' });
+
+        const client = new Client({
+            channelAccessToken: channelAccessToken,
+        });
+
+        const botInfo = await client.getBotInfo();
+        res.json({
+            name: botInfo.displayName,
+            basicId: botInfo.basicId,
+            pictureUrl: botInfo.pictureUrl
+        });
+    } catch (error: any) {
+        console.error('Error verifying bot:', error);
+        res.status(400).json({ error: 'ไม่สามารถดึงข้อมูลบอทได้ กรุณาตรวจสอบ Token' });
+    }
+});
+
+/**
  * POST /api/bots - Create new bot
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, channelAccessToken, channelSecret } = req.body;
+        const { name, channelAccessToken, channelSecret, basicId, pictureUrl } = req.body;
 
         if (!name || !channelAccessToken) {
             return res.status(400).json({ error: 'Name and Channel Access Token are required' });
@@ -35,6 +60,8 @@ router.post('/', async (req, res) => {
                 name,
                 channelAccessToken,
                 channelSecret: channelSecret || null,
+                basicId: basicId || null,
+                pictureUrl: pictureUrl || null,
                 isActive: true
             }
         });
@@ -52,15 +79,17 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, channelAccessToken, channelSecret, isActive } = req.body;
+        const { name, channelAccessToken, channelSecret, isActive, basicId, pictureUrl } = req.body;
 
         const bot = await prisma.lineBot.update({
             where: { id },
             data: {
-                name,
-                channelAccessToken,
-                channelSecret,
-                isActive
+                name: name || undefined,
+                channelAccessToken: channelAccessToken || undefined,
+                channelSecret: channelSecret !== undefined ? channelSecret : undefined,
+                basicId: basicId !== undefined ? basicId : undefined,
+                pictureUrl: pictureUrl !== undefined ? pictureUrl : undefined,
+                isActive: isActive !== undefined ? isActive : undefined
             }
         });
 

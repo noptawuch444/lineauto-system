@@ -34,6 +34,8 @@ model ScheduledMessage {
 model LineBot {
   id                 String   @id @default(uuid())
   name               String   // Bot name e.g. "Main Bot", "Lottery Bot"
+  basicId            String?  // @basicId from LINE
+  pictureUrl         String?  // Profile picture from LINE
   channelAccessToken String
   channelSecret      String?
   isActive           Boolean  @default(true)
