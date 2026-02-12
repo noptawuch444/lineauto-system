@@ -232,7 +232,7 @@ router.post('/upload', (req, res, next) => {
 router.post('/schedule/:publicCode', async (req, res) => {
     try {
         const { publicCode } = req.params;
-        const { content, imageUrl, imageUrls, scheduledTime } = req.body;
+        const { content, imageUrl, imageUrls, scheduledTime, imageFirst } = req.body;
 
         if (!content || !scheduledTime) {
             return res.status(400).json({ error: 'Content and scheduledTime are required' });
@@ -273,7 +273,8 @@ router.post('/schedule/:publicCode', async (req, res) => {
                 status: 'pending',
                 targetType: template.targetType,
                 targetIds: template.targetIds, // Use target IDs from template
-                userIdentifier: userIdentifier
+                userIdentifier: userIdentifier,
+                imageFirst: !!imageFirst
             }
         });
 

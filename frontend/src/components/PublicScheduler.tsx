@@ -29,6 +29,7 @@ export default function PublicScheduler() {
     const [sending, setSending] = useState(false);
     const [toast, setToast] = useState<{ msg: string, type: 'ok' | 'err' | 'warn' } | null>(null);
     const [dragOver, setDragOver] = useState(false);
+    const [imageFirst, setImageFirst] = useState(false);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -158,6 +159,7 @@ export default function PublicScheduler() {
         setText(''); setScheduledTime('');
         previews.forEach(u => URL.revokeObjectURL(u));
         setFiles([]); setPreviews([]);
+        setImageFirst(false);
     };
 
     const showToast = (msg: string, type: 'ok' | 'err' | 'warn' = 'warn') => {
@@ -179,7 +181,8 @@ export default function PublicScheduler() {
             }
             await axios.post(`${API}/public-template/schedule/${publicCode}`, {
                 content: text, imageUrl: urls[0] || null, imageUrls: urls,
-                scheduledTime: new Date(scheduledTime).toISOString()
+                scheduledTime: new Date(scheduledTime).toISOString(),
+                imageFirst: imageFirst
             });
             clearForm(); loadMessages();
             showToast('ตั้งเวลาส่งข้อความเรียบร้อยแล้ว!', 'ok');
@@ -358,6 +361,20 @@ export default function PublicScheduler() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Order Preference */}
+                        {files.length > 0 && (
+                            <div className="g-fg">
+                                <div className="g-order-toggle" onClick={() => setImageFirst(!imageFirst)}>
+                                    <div className={`g-switch ${imageFirst ? 'active' : ''}`}>
+                                        <div className="g-switch-dot"></div>
+                                    </div>
+                                    <span className="g-order-label">
+                                        {imageFirst ? 'ส่งรูปภาพก่อนข้อความ' : 'ส่งข้อความก่อนรูปภาพ'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="g-fg">
                             <label><Clock size={16} /> เวลาส่ง (วัน/เดือน/ปี 24ชม.)</label>

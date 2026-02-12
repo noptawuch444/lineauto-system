@@ -97,7 +97,8 @@ export async function sendImageMessage(
     target: MessageTarget,
     imageUrls: string | string[],
     text?: string,
-    token?: string
+    token?: string,
+    imageFirst: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const client = getClient(token);
@@ -120,17 +121,10 @@ export async function sendImageMessage(
         }
 
         const messages: (TextMessage | ImageMessage)[] = [];
+        const imageMessages: ImageMessage[] = [];
 
-        // Add text message if provided
-        if (text) {
-            messages.push({
-                type: 'text',
-                text,
-            });
-        }
-
-        // Add image messages (Max 5 total messages allowed by LINE)
-        const remainingSlots = 5 - messages.length;
+        // Build image messages first
+        const remainingSlots = text ? 4 : 5;
         const imagesToSend = urls.slice(0, remainingSlots);
 
         if (urls.length > remainingSlots) {
@@ -138,17 +132,28 @@ export async function sendImageMessage(
         }
 
         for (const url of imagesToSend) {
-            // Ensure imageUrl is absolute (for http/https URLs)
             let fullImageUrl = url;
             if (!url.startsWith('http') && !url.startsWith('data:')) {
                 fullImageUrl = `${process.env.BASE_URL || 'http://localhost:3000'}${url}`;
             }
 
-            messages.push({
+            imageMessages.push({
                 type: 'image',
                 originalContentUrl: fullImageUrl,
                 previewImageUrl: fullImageUrl,
             });
+        }
+
+        const textMessage: TextMessage | null = text ? { type: 'text', text } : null;
+
+        if (imageFirst) {
+            // Image(s) then Text
+            messages.push(...imageMessages);
+            if (textMessage) messages.push(textMessage);
+        } else {
+            // Text then Image(s)
+            if (textMessage) messages.push(textMessage);
+            messages.push(...imageMessages);
         }
 
         if (messages.length === 0) {
@@ -205,7 +210,8 @@ export async function sendScheduledMessage(
     content: string,
     imageUrl?: string,
     imageUrls?: string | string[],
-    token?: string
+    token?: string,
+    imageFirst: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
     const target: MessageTarget = {
         type: targetType as 'user' | 'group' | 'room',
@@ -216,7 +222,7 @@ export async function sendScheduledMessage(
     const images = imageUrls ? (typeof imageUrls === 'string' ? JSON.parse(imageUrls) : imageUrls) : (imageUrl ? [imageUrl] : []);
 
     if (images && images.length > 0) {
-        return sendImageMessage(target, images, content, token);
+        return sendImageMessage(target, images, content, token, imageFirst);
     } else {
         return sendTextMessage(target, content, token);
     }

@@ -44,7 +44,7 @@ const upload = multer({
 // POST /api/messages - Create scheduled message
 router.post('/', async (req, res) => {
     try {
-        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, channelAccessToken } = req.body;
+        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, channelAccessToken, imageFirst } = req.body;
 
         if (!content || !scheduledTime || !targetType || !targetIds) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -67,6 +67,7 @@ router.post('/', async (req, res) => {
                 targetType,
                 targetIds: JSON.stringify(targetIds),
                 channelAccessToken: channelAccessToken || null,
+                imageFirst: !!imageFirst,
                 status: 'pending'
             }
         });
@@ -138,7 +139,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds } = req.body;
+        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, imageFirst } = req.body;
 
         const existingMessage = await prisma.scheduledMessage.findUnique({
             where: { id }
@@ -172,7 +173,8 @@ router.put('/:id', async (req, res) => {
                 imageUrls: finalImageUrls !== undefined ? finalImageUrls : existingMessage.imageUrls,
                 scheduledTime: scheduledTime ? new Date(scheduledTime) : existingMessage.scheduledTime,
                 targetType: targetType || existingMessage.targetType,
-                targetIds: targetIds ? JSON.stringify(targetIds) : existingMessage.targetIds
+                targetIds: targetIds ? JSON.stringify(targetIds) : existingMessage.targetIds,
+                imageFirst: imageFirst !== undefined ? !!imageFirst : existingMessage.imageFirst
             }
         });
 

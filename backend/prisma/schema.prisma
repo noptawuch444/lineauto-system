@@ -22,6 +22,7 @@ model ScheduledMessage {
   channelAccessToken String? // Optional specific token for multi-bot support
   createdByUserId String?  // User ID who created this message (for public scheduler)
   userIdentifier  String?  // User code or identifier for tracking
+  imageFirst    Boolean  @default(false) // Send image before text?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
