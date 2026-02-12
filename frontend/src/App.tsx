@@ -1,10 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { Database, LogOut } from 'lucide-react';
+import { Database, LogOut, Bot } from 'lucide-react';
 import './App.css';
 import TemplateManagement from './components/TemplateManagement';
 import PublicScheduler from './components/PublicScheduler';
 import LoginPage from './components/LoginPage';
+import BotManagement from './components/BotManagement';
 import { useAuth } from './contexts/AuthContext';
+import { useState } from 'react';
 
 function App() {
     const { user, loading } = useAuth();
@@ -34,6 +36,7 @@ function App() {
 
 function AdminApp() {
     const { logout } = useAuth();
+    const [activeTab, setActiveTab] = useState<'templates' | 'bots'>('templates');
 
     return (
         <div className="app">
@@ -67,8 +70,22 @@ function AdminApp() {
                 </nav>
 
                 <div className="main-content-area">
+                    <div className="admin-tabs">
+                        <button
+                            className={`admin-tab ${activeTab === 'templates' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('templates')}
+                        >
+                            <Database size={16} /> เทมเพลต & การจอง
+                        </button>
+                        <button
+                            className={`admin-tab ${activeTab === 'bots' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('bots')}
+                        >
+                            <Bot size={16} /> จัดการบอท
+                        </button>
+                    </div>
                     <div className="admin-content">
-                        <TemplateManagement />
+                        {activeTab === 'templates' ? <TemplateManagement /> : <BotManagement />}
                     </div>
                 </div>
             </div>

@@ -1,10 +1,27 @@
 import { Client, ClientConfig, TextMessage, ImageMessage } from '@line/bot-sdk';
+import prisma from './db';
 
-// Function to get fresh credentials from environment or use provided token
-function getClient(token?: string): Client {
+// Function to get fresh credentials from database if botId provided, or use token/env
+async function getClient(token?: string, botId?: string): Promise<Client> {
+    let accessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+    let secret = process.env.LINE_CHANNEL_SECRET || '';
+
+    if (botId) {
+        try {
+            const bot = await prisma.lineBot.findUnique({ where: { id: botId } });
+            if (bot && bot.isActive) {
+                accessToken = bot.channelAccessToken;
+                secret = bot.channelSecret || secret;
+                console.log(`🤖 Using Bot ID: ${botId} Name: ${bot.name}`);
+            }
+        } catch (dbErr) {
+            console.error('Error fetching bot details from DB:', dbErr);
+        }
+    }
+
     const config: ClientConfig = {
-        channelAccessToken: token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
-        channelSecret: process.env.LINE_CHANNEL_SECRET || '',
+        channelAccessToken: accessToken,
+        channelSecret: secret,
     };
     return new Client(config);
 }
@@ -20,25 +37,17 @@ export interface MessageTarget {
 export async function sendTextMessage(
     target: MessageTarget,
     text: string,
-    token?: string
+    token?: string,
+    botId?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const client = getClient(token);
+        const client = await getClient(token, botId);
         const channelAccessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-        const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
 
         console.log('\n🔍 sendTextMessage called');
         console.log('   Target type:', target.type);
         console.log('   Target IDs:', target.ids);
         console.log('   Message:', text);
-        console.log('   Token Source:', token ? 'Custom (Template)' : 'Default (Env)');
-        console.log('   Channel Access Token:', channelAccessToken ? `${channelAccessToken.substring(0, 20)}... ✅` : 'Missing ❌');
-
-        if (!channelAccessToken) {
-            const error = 'LINE API credentials not configured (Missing Token)';
-            console.error('❌ Error:', error);
-            throw new Error(error);
-        }
 
         const message: TextMessage = {
             type: 'text',
@@ -54,15 +63,7 @@ export async function sendTextMessage(
                 return { id, success: true };
             } catch (error: any) {
                 console.error(`\n❌ Failed to send to ${id}`);
-                console.error('   Error name:', error.name);
                 console.error('   Error message:', error.message);
-                console.error('   Error code:', error.code);
-                console.error('   Status code:', error.statusCode);
-                if (error.statusCode === 401) {
-                    console.error('   💡 401 Unauthorized - Check Channel Access Token!');
-                    console.error('   Current token:', channelAccessToken.substring(0, 30) + '...');
-                }
-                console.error('   Full error:', JSON.stringify(error, null, 2));
                 return { id, success: false, error: error.message };
             }
         });
@@ -71,21 +72,14 @@ export async function sendTextMessage(
         const failed = results.filter(r => !r.success);
 
         if (failed.length > 0) {
-            const errorMsg = `Failed to send to ${failed.length} target(s): ${failed.map(f => f.id).join(', ')}`;
-            console.error('\n❌ Overall result:', errorMsg);
-            return {
-                success: false,
-                error: errorMsg
-            };
+            const errorMsg = `Failed to send to ${failed.length} target(s)`;
+            return { success: false, error: errorMsg };
         }
 
         console.log('\n✅ All messages sent successfully!');
         return { success: true };
     } catch (error: any) {
-        console.error('\n❌ Error in sendTextMessage:');
-        console.error('   Name:', error.name);
-        console.error('   Message:', error.message);
-        console.error('   Stack:', error.stack);
+        console.error('\n❌ Error in sendTextMessage:', error);
         return { success: false, error: error.message };
     }
 }
@@ -98,27 +92,16 @@ export async function sendImageMessage(
     imageUrls: string | string[],
     text?: string,
     token?: string,
-    imageFirst: boolean = false
+    imageFirst: boolean = false,
+    botId?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const client = getClient(token);
-        const channelAccessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-        const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
-
+        const client = await getClient(token, botId);
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
         console.log('\n🔍 sendImageMessage called');
-        console.log('   Target type:', target.type);
-        console.log('   Target IDs:', target.ids);
         console.log('   Text:', text || 'No text');
         console.log('   Image URLs:', urls.length, 'images');
-        console.log('   Token Source:', token ? 'Custom (Template)' : 'Default (Env)');
-
-        if (!channelAccessToken) {
-            const error = 'LINE API credentials not configured (Missing Token)';
-            console.error('❌ Error:', error);
-            throw new Error(error);
-        }
 
         const messages: (TextMessage | ImageMessage)[] = [];
         const imageMessages: ImageMessage[] = [];
@@ -126,10 +109,6 @@ export async function sendImageMessage(
         // Build image messages first
         const remainingSlots = text ? 4 : 5;
         const imagesToSend = urls.slice(0, remainingSlots);
-
-        if (urls.length > remainingSlots) {
-            console.warn(`⚠️ Warning: Too many messages. Sending only first ${remainingSlots} images.`);
-        }
 
         for (const url of imagesToSend) {
             let fullImageUrl = url;
@@ -147,33 +126,21 @@ export async function sendImageMessage(
         const textMessage: TextMessage | null = text ? { type: 'text', text } : null;
 
         if (imageFirst) {
-            // Image(s) then Text
             messages.push(...imageMessages);
             if (textMessage) messages.push(textMessage);
         } else {
-            // Text then Image(s)
             if (textMessage) messages.push(textMessage);
             messages.push(...imageMessages);
         }
 
-        if (messages.length === 0) {
-            console.warn('⚠️ No messages to send (no text and no images provided)');
-            return { success: false, error: 'No content to send' };
-        }
+        if (messages.length === 0) return { success: false, error: 'No content to send' };
 
-        console.log('   Sending', messages.length, 'message(s)');
-
-        // Send to all target IDs
         const promises = target.ids.map(async (id) => {
             try {
-                console.log(`\n📤 Sending message to ${id}...`);
                 await client.pushMessage(id, messages);
-                console.log(`✅ Success: ${id}`);
                 return { id, success: true };
             } catch (error: any) {
-                console.error(`\n❌ Failed to send to ${id}`);
-                console.error('   Error name:', error.name);
-                console.error('   Error message:', error.message);
+                console.error(`\n❌ Failed to ${id}:`, error.message);
                 return { id, success: false, error: error.message };
             }
         });
@@ -181,16 +148,8 @@ export async function sendImageMessage(
         const results = await Promise.all(promises);
         const failed = results.filter(r => !r.success);
 
-        if (failed.length > 0) {
-            const errorMsg = `Failed to send to ${failed.length} target(s): ${failed.map(f => f.id).join(', ')}`;
-            console.error('\n❌ Overall result:', errorMsg);
-            return {
-                success: false,
-                error: errorMsg
-            };
-        }
+        if (failed.length > 0) return { success: false, error: 'Failed to send to some targets' };
 
-        console.log('\n✅ All messages sent successfully!');
         return { success: true };
     } catch (error: any) {
         console.error('\n❌ Error in sendImageMessage:', error);
@@ -201,9 +160,6 @@ export async function sendImageMessage(
 /**
  * Send a scheduled message (text or image)
  */
-/**
- * Send a scheduled message (text or image)
- */
 export async function sendScheduledMessage(
     targetType: string,
     targetIds: string[],
@@ -211,19 +167,19 @@ export async function sendScheduledMessage(
     imageUrl?: string,
     imageUrls?: string | string[],
     token?: string,
-    imageFirst: boolean = false
+    imageFirst: boolean = false,
+    botId?: string
 ): Promise<{ success: boolean; error?: string }> {
     const target: MessageTarget = {
         type: targetType as 'user' | 'group' | 'room',
         ids: targetIds,
     };
 
-    // Prioritize imageUrls (new), then imageUrl (legacy), then text-only
     const images = imageUrls ? (typeof imageUrls === 'string' ? JSON.parse(imageUrls) : imageUrls) : (imageUrl ? [imageUrl] : []);
 
     if (images && images.length > 0) {
-        return sendImageMessage(target, images, content, token, imageFirst);
+        return sendImageMessage(target, images, content, token, imageFirst, botId);
     } else {
-        return sendTextMessage(target, content, token);
+        return sendTextMessage(target, content, token, botId);
     }
 }

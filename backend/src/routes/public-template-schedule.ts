@@ -274,7 +274,8 @@ router.post('/schedule/:publicCode', async (req, res) => {
                 targetType: template.targetType,
                 targetIds: template.targetIds, // Use target IDs from template
                 userIdentifier: userIdentifier,
-                imageFirst: !!imageFirst
+                imageFirst: !!imageFirst,
+                botId: template.botId
             }
         });
 

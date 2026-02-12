@@ -12,6 +12,7 @@ import publicScheduleRoutes from './routes/public-schedule';
 import liffScheduleRoutes from './routes/liff-schedule';
 import adminTemplateRoutes from './routes/admin-templates';
 import publicTemplateScheduleRoutes from './routes/public-template-schedule';
+import botRoutes from './routes/bots';
 import { initScheduler } from './services/schedulerService';
 
 dotenv.config();
@@ -51,6 +52,7 @@ app.use('/api/public', publicScheduleRoutes);
 app.use('/api/public-template', publicTemplateScheduleRoutes);
 app.use('/api/liff', liffScheduleRoutes);
 app.use('/api/admin/templates', adminTemplateRoutes);
+app.use('/api/bots', botRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

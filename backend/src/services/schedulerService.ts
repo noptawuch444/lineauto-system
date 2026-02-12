@@ -36,7 +36,8 @@ async function checkAndSendMessages() {
                     message.imageUrl || undefined,
                     imageUrls,
                     message.channelAccessToken || undefined,
-                    message.imageFirst
+                    message.imageFirst,
+                    message.botId || undefined
                 );
 
                 const finalStatus = result.success ? 'sent' : 'failed';

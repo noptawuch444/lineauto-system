@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Plus, Edit3, Trash2, Power, Copy, ExternalLink,
     Save, X, Layers, Target, Loader2, AlertTriangle,
-    CheckCircle2, XCircle, Database, RotateCw
+    CheckCircle2, XCircle, Database, RotateCw, Bot
 } from 'lucide-react';
 import './TemplateManagement.css';
 
@@ -18,9 +18,16 @@ interface MessageTemplate {
     targetType: string;
     targetIds: string;
     publicCode: string;
+    botId?: string | null;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    bot?: { name: string } | null;
+}
+
+interface LineBot {
+    id: string;
+    name: string;
 }
 
 export default function TemplateManagement() {
@@ -31,12 +38,14 @@ export default function TemplateManagement() {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [bots, setBots] = useState<LineBot[]>([]);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         category: '',
         targetType: 'group',
-        targetIds: ''
+        targetIds: '',
+        botId: ''
     });
     const [toast, setToast] = useState<{ msg: string, type: 'ok' | 'err' | 'warn' } | null>(null);
 
@@ -50,7 +59,17 @@ export default function TemplateManagement() {
     useEffect(() => {
         fetchTemplates();
         fetchLineGroups();
+        fetchBots();
     }, []);
+
+    const fetchBots = async () => {
+        try {
+            const r = await axios.get(`${API_BASE_URL}/bots`);
+            setBots(r.data);
+        } catch (e) {
+            console.error('Error fetching bots:', e);
+        }
+    };
 
     const fetchLineGroups = async () => {
         try {
@@ -173,7 +192,7 @@ export default function TemplateManagement() {
     const handleCreate = () => {
         setIsEditing(true);
         setSelectedTemplate(null);
-        setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '' });
+        setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '', botId: bots[0]?.id || '' });
     };
 
     const handleEdit = (template: MessageTemplate) => {
@@ -193,7 +212,8 @@ export default function TemplateManagement() {
             description: template.description || '',
             category: template.category || '',
             targetType: template.targetType,
-            targetIds: targetIdsStr
+            targetIds: targetIdsStr,
+            botId: template.botId || ''
         });
     };
 
@@ -247,7 +267,8 @@ export default function TemplateManagement() {
                 description: formData.description,
                 category: formData.category,
                 targetType: formData.targetType,
-                targetIds: targetIdsArray
+                targetIds: targetIdsArray,
+                botId: formData.botId || null
             };
 
             if (selectedTemplate) {
@@ -416,15 +437,30 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
-                            <div className="adm-fg">
-                                <label>คำอธิบาย (สั้นๆ)</label>
-                                <input
-                                    type="text"
-                                    className="adm-input"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="เช่น สำหรับทีมงานแอดมินส่งผลหวยรายวัน"
-                                />
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label>เลือกบอทที่ใช้ส่ง*</label>
+                                    <select
+                                        className="adm-input"
+                                        value={formData.botId}
+                                        onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
+                                    >
+                                        <option value="">-- ใช้บอทเริ่มต้น (Env) --</option>
+                                        {bots.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="adm-fg flex-1">
+                                    <label>คำอธิบาย (สั้นๆ)</label>
+                                    <input
+                                        type="text"
+                                        className="adm-input"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="เช่น สำหรับทีมงานแอดมินส่งผลหวยรายวัน"
+                                    />
+                                </div>
                             </div>
 
                             <div className="adm-form-row">
@@ -499,6 +535,11 @@ export default function TemplateManagement() {
                                             {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
                                             {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
                                         </div>
+                                    </div>
+
+                                    <div className="adm-card-bot">
+                                        <Bot size={12} className="adm-bot-icon" />
+                                        <span>บอท: {template.bot?.name || 'บอทเริ่มต้น'}</span>
                                     </div>
 
                                     <div className="adm-link-box">

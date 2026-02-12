@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, category, targetType, targetIds } = req.body;
+        const { name, description, category, targetType, targetIds, botId } = req.body;
 
         if (!name || !targetType || !targetIds) {
             return res.status(400).json({ error: 'Name, targetType, and targetIds are required' });
@@ -34,7 +34,8 @@ router.post('/', async (req, res) => {
             description,
             category,
             targetType,
-            targetIds
+            targetIds,
+            botId
         });
 
         res.status(201).json(template);
@@ -50,7 +51,7 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
     try {
-        const { name, description, category, targetType, targetIds, isActive } = req.body;
+        const { name, description, category, targetType, targetIds, isActive, botId } = req.body;
 
         const template = await templateService.updateTemplate(req.params.id, {
             name,
@@ -58,7 +59,8 @@ router.put('/:id', async (req, res) => {
             category,
             targetType,
             targetIds,
-            isActive
+            isActive,
+            botId
         });
 
         res.json(template);

@@ -30,7 +30,8 @@ export async function getActiveTemplates() {
  */
 export async function getAllTemplates() {
     return await prisma.messageTemplate.findMany({
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: { bot: { select: { name: true } } }
     });
 }
 
@@ -73,6 +74,7 @@ export async function createTemplate(data: {
     category?: string;
     targetType: string;
     targetIds: string[];
+    botId?: string | null;
 }) {
     const publicCode = generatePublicCode();
 
@@ -84,7 +86,8 @@ export async function createTemplate(data: {
             targetType: data.targetType,
             targetIds: JSON.stringify(data.targetIds),
             publicCode,
-            isActive: true
+            isActive: true,
+            botId: data.botId || null
         }
     });
 }
@@ -99,6 +102,7 @@ export async function updateTemplate(id: string, data: {
     targetType?: string;
     targetIds?: string[];
     isActive?: boolean;
+    botId?: string | null;
 }) {
     const updateData: any = {};
 
@@ -108,6 +112,7 @@ export async function updateTemplate(id: string, data: {
     if (data.targetType !== undefined) updateData.targetType = data.targetType;
     if (data.targetIds !== undefined) updateData.targetIds = JSON.stringify(data.targetIds);
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    if (data.botId !== undefined) updateData.botId = data.botId;
 
     return await prisma.messageTemplate.update({
         where: { id },

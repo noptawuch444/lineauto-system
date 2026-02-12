@@ -19,14 +19,29 @@ model ScheduledMessage {
   status        String   @default("pending") // pending, sent, failed, cancelled
   targetType    String   // user, group, room
   targetIds     String   // JSON array of target IDs
-  channelAccessToken String? // Optional specific token for multi-bot support
+  botId         String?  // Reference to specific bot
+  channelAccessToken String? // Keeping for direct token support
   createdByUserId String?  // User ID who created this message (for public scheduler)
   userIdentifier  String?  // User code or identifier for tracking
   imageFirst    Boolean  @default(false) // Send image before text?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
+  bot           LineBot?      @relation(fields: [botId], references: [id])
   logs          MessageLog[]
+}
+
+model LineBot {
+  id                 String   @id @default(uuid())
+  name               String   // Bot name e.g. "Main Bot", "Lottery Bot"
+  channelAccessToken String
+  channelSecret      String?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  templates          MessageTemplate[]
+  messages           ScheduledMessage[]
 }
 
 model MessageTemplate {
@@ -37,9 +52,12 @@ model MessageTemplate {
   targetType  String   // "user", "group", "room"
   targetIds   String   // JSON array of target IDs
   publicCode  String   @unique // รหัสสำหรับ public link (เช่น "abc123")
+  botId       String?  // Assigned Bot for this template
   isActive    Boolean  @default(true) // เปิด/ปิดการใช้งาน
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  bot         LineBot? @relation(fields: [botId], references: [id])
 }
 
 model MessageLog {

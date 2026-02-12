@@ -798,3 +798,21 @@
         grid-template-columns: 1fr;
     }
 }
+/* Bot assignment on card */
+.adm-card-bot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 6px 12px;
+    background: rgba(201, 168, 76, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(201, 168, 76, 0.1);
+    font-size: 13px;
+    color: var(--primary-light);
+    font-weight: 500;
+}
+
+.adm-bot-icon {
+    color: var(--primary);
+}
