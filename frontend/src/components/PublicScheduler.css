@@ -1239,66 +1239,85 @@
     color: #1a1710;
 }
 
-/* ═══ IMAGE ORDER TOGGLE ═══ */
-.g-order-toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background: rgba(201, 168, 76, 0.04);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-    margin: 10px 0;
+/* ═══ IMAGE ORDER SELECTOR ═══ */
+.g-order-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 4px 0 8px;
 }
 
-.g-order-toggle:hover {
+.g-order-option {
+    background: rgba(201, 168, 76, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--gray);
+    font-family: inherit;
+}
+
+.g-order-option:hover {
     background: rgba(201, 168, 76, 0.08);
     border-color: rgba(201, 168, 76, 0.3);
+    transform: translateY(-2px);
 }
 
-.g-switch {
-    width: 42px;
-    height: 22px;
-    background: var(--input-bg);
-    border: 1px solid var(--border-h);
-    border-radius: 20px;
-    position: relative;
-    transition: all 0.3s;
-}
-
-.g-switch.active {
-    background: var(--gold-dark);
-    border-color: var(--gold);
-    box-shadow: 0 0 10px rgba(201, 168, 76, 0.2);
-}
-
-.g-switch-dot {
-    width: 14px;
-    height: 14px;
-    background: var(--gray);
-    border-radius: 50%;
-    position: absolute;
-    top: 3px;
-    left: 4px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.g-switch.active .g-switch-dot {
-    left: 22px;
-    background: var(--white);
-    box-shadow: 0 0 8px #fff;
-}
-
-.g-order-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--gray);
-    transition: color 0.2s;
-}
-
-.g-order-toggle:hover .g-order-label {
+.g-order-option.active {
+    background: rgba(201, 168, 76, 0.08);
+    border: 2px solid var(--gold);
     color: var(--gold-light);
+    box-shadow: 0 4px 15px rgba(201, 168, 76, 0.15);
+}
+
+.g-order-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.g-p-txt,
+.g-p-img {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.g-p-txt {
+    background: rgba(91, 155, 213, 0.15);
+    color: var(--blue);
+    border: 1px solid rgba(91, 155, 213, 0.3);
+}
+
+.g-p-img {
+    background: rgba(201, 168, 76, 0.15);
+    color: var(--gold);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+}
+
+.g-p-arr {
+    font-size: 12px;
+    color: var(--dim);
+}
+
+.g-order-option.active .g-p-txt {
+    border-color: var(--blue);
+}
+
+.g-order-option.active .g-p-img {
+    border-color: var(--gold);
+}
+
+.g-order-option span {
+    font-size: 13px;
+    font-weight: 600;
 }

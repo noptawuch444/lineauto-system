@@ -365,13 +365,33 @@ export default function PublicScheduler() {
                         {/* Order Preference */}
                         {files.length > 0 && (
                             <div className="g-fg">
-                                <div className="g-order-toggle" onClick={() => setImageFirst(!imageFirst)}>
-                                    <div className={`g-switch ${imageFirst ? 'active' : ''}`}>
-                                        <div className="g-switch-dot"></div>
-                                    </div>
-                                    <span className="g-order-label">
-                                        {imageFirst ? 'ส่งรูปภาพก่อนข้อความ' : 'ส่งข้อความก่อนรูปภาพ'}
-                                    </span>
+                                <label><ImageIcon size={14} /> เลือกรูปแบบการลำดับข้อความ</label>
+                                <div className="g-order-selector">
+                                    <button
+                                        type="button"
+                                        className={`g-order-option ${!imageFirst ? 'active' : ''}`}
+                                        onClick={() => setImageFirst(false)}
+                                    >
+                                        <div className="g-order-preview">
+                                            <div className="g-p-txt">ข้อความ</div>
+                                            <div className="g-p-arr">➔</div>
+                                            <div className="g-p-img">รูปภาพ</div>
+                                        </div>
+                                        <span>ส่งข้อความก่อนรูป</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className={`g-order-option ${imageFirst ? 'active' : ''}`}
+                                        onClick={() => setImageFirst(true)}
+                                    >
+                                        <div className="g-order-preview">
+                                            <div className="g-p-img">รูปภาพ</div>
+                                            <div className="g-p-arr">➔</div>
+                                            <div className="g-p-txt">ข้อความ</div>
+                                        </div>
+                                        <span>ส่งรูปภาพก่อนข้อความ</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
