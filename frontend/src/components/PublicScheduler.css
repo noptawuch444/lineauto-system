@@ -1238,3 +1238,67 @@
     background: var(--gold);
     color: #1a1710;
 }
+
+/* ═══ IMAGE ORDER TOGGLE ═══ */
+.g-order-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(201, 168, 76, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    margin: 10px 0;
+}
+
+.g-order-toggle:hover {
+    background: rgba(201, 168, 76, 0.08);
+    border-color: rgba(201, 168, 76, 0.3);
+}
+
+.g-switch {
+    width: 42px;
+    height: 22px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-h);
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.g-switch.active {
+    background: var(--gold-dark);
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(201, 168, 76, 0.2);
+}
+
+.g-switch-dot {
+    width: 14px;
+    height: 14px;
+    background: var(--gray);
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.g-switch.active .g-switch-dot {
+    left: 22px;
+    background: var(--white);
+    box-shadow: 0 0 8px #fff;
+}
+
+.g-order-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray);
+    transition: color 0.2s;
+}
+
+.g-order-toggle:hover .g-order-label {
+    color: var(--gold-light);
+}
