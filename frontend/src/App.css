@@ -346,3 +346,54 @@ body {
     padding: 0 15px;
   }
 }
+
+/* Auth & Logout */
+.nav-logout-btn {
+  background: rgba(224, 85, 85, 0.1);
+  border: 1px solid rgba(224, 85, 85, 0.2);
+  color: var(--error);
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.nav-logout-btn:hover {
+  background: var(--error);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(224, 85, 85, 0.4);
+}
+
+.app-loading-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-main);
+  color: var(--primary);
+  gap: 20px;
+}
+
+.loader {
+  border: 4px solid rgba(201, 168, 76, 0.1);
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

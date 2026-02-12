@@ -1,23 +1,40 @@
 import { Routes, Route } from 'react-router-dom';
+import { Database, LogOut } from 'lucide-react';
 import './App.css';
 import TemplateManagement from './components/TemplateManagement';
 import PublicScheduler from './components/PublicScheduler';
+import LoginPage from './components/LoginPage';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="app-loading-screen">
+                <div className="loader"></div>
+                <p>GoldSync AutoBot Loading...</p>
+            </div>
+        );
+    }
+
     return (
         <Routes>
             {/* Public Route - Template-based Scheduling */}
             <Route path="/schedule/:publicCode" element={<PublicScheduler />} />
 
-            {/* Admin Routes - No Authentication Required */}
-            <Route path="/*" element={<AdminApp />} />
+            {/* Admin Routes - Protected */}
+            <Route
+                path="/*"
+                element={user ? <AdminApp /> : <LoginPage />}
+            />
         </Routes>
     );
 }
 
-import { Database } from 'lucide-react';
-
 function AdminApp() {
+    const { logout } = useAuth();
+
     return (
         <div className="app">
             <div className="container">
@@ -42,6 +59,9 @@ function AdminApp() {
                         <div className="user-profile-badge">
                             <div className="avatar">A</div>
                             <span>แอดมิน</span>
+                            <button className="nav-logout-btn" onClick={logout} title="ออกจากระบบ">
+                                <LogOut size={16} />
+                            </button>
                         </div>
                     </div>
                 </nav>
