@@ -49,7 +49,7 @@ router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, re
         });
 
         // 4. Process
-        await Promise.all(events.map(event => handleEvent(event, client)));
+        await Promise.all(events.map(event => handleEvent(event, client, bot.id)));
 
         res.status(200).send('OK');
     } catch (error: any) {
@@ -58,7 +58,7 @@ router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, re
     }
 });
 
-async function handleEvent(event: WebhookEvent, client: Client) {
+async function handleEvent(event: WebhookEvent, client: Client, botId: string) {
     // 1. Registration & ID Commands
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
@@ -79,9 +79,9 @@ async function handleEvent(event: WebhookEvent, client: Client) {
                     if (source.type === 'group') {
                         try {
                             const summary = await client.getGroupSummary(source.groupId);
-                            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl);
+                            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
                         } catch (e) {
-                            await lineGroupService.syncGroup(source.groupId);
+                            await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
                         }
                     }
 
@@ -100,9 +100,9 @@ async function handleEvent(event: WebhookEvent, client: Client) {
         if (source.type === 'group' && source.groupId) {
             try {
                 const groupSummary = await client.getGroupSummary(source.groupId);
-                await lineGroupService.syncGroup(source.groupId, groupSummary.groupName, groupSummary.pictureUrl);
+                await lineGroupService.syncGroup(source.groupId, groupSummary.groupName, groupSummary.pictureUrl, botId);
             } catch (err) {
-                await lineGroupService.syncGroup(source.groupId);
+                await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
             }
         }
     }

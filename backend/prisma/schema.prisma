@@ -44,6 +44,7 @@ model LineBot {
 
   templates          MessageTemplate[]
   messages           ScheduledMessage[]
+  managedGroups      LineGroup[]
 }
 
 model MessageTemplate {
@@ -91,8 +92,10 @@ model LineGroup {
   groupId     String   @unique
   groupName   String?
   pictureUrl  String?
+  botId       String?  // The bot that discovered/manages this group
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  bot         LineBot? @relation(fields: [botId], references: [id])
   assignedUsers User[]
 }

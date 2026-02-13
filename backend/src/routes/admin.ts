@@ -18,7 +18,8 @@ router.get('/users', async (req, res) => {
 // Get all groups
 router.get('/groups', async (req, res) => {
     try {
-        const groups = await lineGroupService.getAllGroups();
+        const { botId } = req.query;
+        const groups = await lineGroupService.getAllGroups(botId as string);
         res.json(groups);
     } catch (error) {
         console.error('Error fetching groups:', error);

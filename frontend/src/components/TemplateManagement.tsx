@@ -58,9 +58,12 @@ export default function TemplateManagement() {
 
     useEffect(() => {
         fetchTemplates();
-        fetchLineGroups();
         fetchBots();
     }, []);
+
+    useEffect(() => {
+        fetchLineGroups(formData.botId);
+    }, [formData.botId]);
 
     const fetchBots = async () => {
         try {
@@ -71,9 +74,11 @@ export default function TemplateManagement() {
         }
     };
 
-    const fetchLineGroups = async () => {
+    const fetchLineGroups = async (botId?: string) => {
         try {
-            const r = await axios.get(`${API_BASE_URL}/admin/groups`);
+            const r = await axios.get(`${API_BASE_URL}/admin/groups`, {
+                params: { botId }
+            });
             setLineGroups(r.data);
         } catch (e) {
             console.error('Error fetching line groups:', e);
