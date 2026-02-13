@@ -1,7 +1,8 @@
 import express from 'express';
-import { middleware, WebhookEvent, Client, validateSignature } from '@line/bot-sdk';
+import { WebhookEvent, Client, validateSignature } from '@line/bot-sdk';
 import { lineGroupService } from '../services/lineGroupService';
 import prisma from '../services/db';
+import bodyParser from 'body-parser';
 
 const router = express.Router();
 
@@ -9,45 +10,35 @@ const router = express.Router();
  * Diagnostic endpoint
  */
 router.get('/', (req, res) => {
-    res.json({ status: 'Webhook system is online' });
+    res.json({ status: 'Multi-Bot Webhook System is online' });
 });
 
 /**
- * Multi-Bot Webhook Handler
- * URL: https://your-domain.com/webhook/:id
+ * Multi-Bot Webhook Handler with manual body parsing for signature validation
  */
-router.post('/:id', async (req, res) => {
+router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
     const { id } = req.params;
+    const signature = req.headers['x-line-signature'] as string;
 
     try {
-        // 1. Find bot credentials from database
+        // 1. Find bot
         const bot = await prisma.lineBot.findUnique({ where: { id } });
+        if (!bot) return res.status(404).send('Bot not found');
 
-        if (!bot) {
-            console.error(`[WEBHOOK] Bot not found: ${id}`);
-            return res.status(404).send('Bot not found');
-        }
-
-        // 2. Signature Validation (SECURITY)
-        const signature = req.headers['x-line-signature'] as string;
-        const body = (req as any).rawBody || JSON.stringify(req.body); // Fallback to body string if rawBody missed
-
-        // Note: LINE Verify sends a request with no events to check 200 OK
-        if (!signature && req.body.events?.length === 0) {
-            return res.status(200).send('Verify OK');
-        }
-
+        // 2. Validate Signature
+        const rawBody = req.body.toString();
         if (bot.channelSecret && signature) {
-            // If secret exists, we MUST validate
-            const isValid = validateSignature(body, bot.channelSecret, signature);
+            const isValid = validateSignature(rawBody, bot.channelSecret, signature);
             if (!isValid) {
-                console.error(`[WEBHOOK] Invalid signature for bot: ${bot.name}`);
+                console.error(`[SIG FAIL] Bot: ${bot.name} (${id})`);
                 return res.status(401).send('Invalid signature');
             }
         }
 
-        // 3. Process Events
-        const events: WebhookEvent[] = req.body.events;
+        // 3. Parse Body
+        const parsedBody = JSON.parse(rawBody);
+        const events: WebhookEvent[] = parsedBody.events;
+
         if (!events || events.length === 0) {
             return res.status(200).send('OK');
         }
@@ -57,40 +48,23 @@ router.post('/:id', async (req, res) => {
             channelSecret: bot.channelSecret || undefined
         });
 
+        // 4. Process
         await Promise.all(events.map(event => handleEvent(event, client)));
 
         res.status(200).send('OK');
     } catch (error: any) {
-        console.error(`[WEBHOOK ERROR] Bot ${id}:`, error.message);
-        res.status(500).send('Internal Server Error');
+        console.error(`[WEBHOOK ERROR] ${id}:`, error.message);
+        res.status(500).send('Internal Error');
     }
 });
 
-/**
- * Default Webhook (Backward compatibility or fallback)
- * Uses ENV variables if available
- */
-router.post('/', (req, res, next) => {
-    const secret = process.env.LINE_CHANNEL_SECRET;
-    if (!secret) return res.status(200).send('No default bot configured');
-
-    middleware({ channelSecret: secret })(req, res, next);
-}, async (req, res) => {
-    const secret = process.env.LINE_CHANNEL_SECRET;
-    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-    if (!token) return res.status(200).send('OK');
-
-    const client = new Client({ channelAccessToken: token, channelSecret: secret });
-    const events: WebhookEvent[] = req.body.events;
-    await Promise.all(events.map(event => handleEvent(event, client)));
-    res.status(200).send('OK');
-});
-
 async function handleEvent(event: WebhookEvent, client: Client) {
+    // 1. Registration & ID Commands
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
+        const triggers = ['!id', '.id', '!reg', '!sync'];
 
-        if (text === '!id' || text === '.id') {
+        if (triggers.includes(text)) {
             const source = event.source;
             let targetId = '';
             let targetType = '';
@@ -101,17 +75,27 @@ async function handleEvent(event: WebhookEvent, client: Client) {
 
             if (targetId) {
                 try {
+                    // Try to fetch newest info to sync
+                    if (source.type === 'group') {
+                        try {
+                            const summary = await client.getGroupSummary(source.groupId);
+                            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl);
+                        } catch (e) {
+                            await lineGroupService.syncGroup(source.groupId);
+                        }
+                    }
+
                     await client.replyMessage(event.replyToken, {
                         type: 'text',
-                        text: `${targetType}: ${targetId}`
+                        text: `✅ ลงทะเบียน/อัปเดตข้อมูลห้องสำเร็จ!\n${targetType}: ${targetId}`
                     });
                 } catch (err) { console.error('Reply failed:', err); }
             }
         }
     }
 
-    // Sync Group Info
-    if (['join', 'memberJoined', 'message'].includes(event.type)) {
+    // 2. Auto-Sync on Join
+    if (['join', 'memberJoined'].includes(event.type)) {
         const source = event.source;
         if (source.type === 'group' && source.groupId) {
             try {
