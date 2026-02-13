@@ -1,77 +1,92 @@
 import express from 'express';
-import { middleware, WebhookEvent, Client } from '@line/bot-sdk';
+import { middleware, WebhookEvent, Client, validateSignature } from '@line/bot-sdk';
 import { lineGroupService } from '../services/lineGroupService';
+import prisma from '../services/db';
 
 const router = express.Router();
 
-const config = {
-    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
-    channelSecret: process.env.LINE_CHANNEL_SECRET || '',
-};
-
-// Check for required environment variables
-if (!config.channelAccessToken || !config.channelSecret) {
-    console.error('[CRITICAL] Webhook initialization failed: LINE_CHANNEL_ACCESS_TOKEN or LINE_CHANNEL_SECRET is missing!');
-}
-
-const client = new Client(config);
-
-// Webhook Diagnostic
+/**
+ * Diagnostic endpoint
+ */
 router.get('/', (req, res) => {
-    res.json({
-        status: 'Webhook is active',
-        hasAccessToken: !!config.channelAccessToken,
-        hasSecret: !!config.channelSecret,
-        timestamp: new Date().toISOString()
-    });
+    res.json({ status: 'Webhook system is online' });
 });
 
 /**
- * Custom middleware to handle LINE verification and signature checking
+ * Multi-Bot Webhook Handler
+ * URL: https://your-domain.com/webhook/:id
  */
-const lineMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!config.channelSecret) {
-        console.error('[ERROR] Cannot verify signature: LINE_CHANNEL_SECRET is empty');
-        return res.status(500).send('Channel Secret Missing');
-    }
+router.post('/:id', async (req, res) => {
+    const { id } = req.params;
 
-    // The middleware(config) returns a function that expects (req, res, next)
-    return middleware(config)(req, res, next);
-};
-
-// Webhook Handler
-router.post('/', lineMiddleware, async (req, res) => {
     try {
-        const events: WebhookEvent[] = req.body.events;
+        // 1. Find bot credentials from database
+        const bot = await prisma.lineBot.findUnique({ where: { id } });
 
-        // Handle case where events might be missing (e.g., some test requests)
-        if (!events || !Array.isArray(events)) {
-            console.log('[LINE] Webhook received but no events found in body');
-            return res.status(200).json({ status: 'ok', message: 'No events' });
+        if (!bot) {
+            console.error(`[WEBHOOK] Bot not found: ${id}`);
+            return res.status(404).send('Bot not found');
         }
 
-        console.log(`[LINE] Received ${events.length} events`);
+        // 2. Signature Validation (SECURITY)
+        const signature = req.headers['x-line-signature'] as string;
+        const body = (req as any).rawBody || JSON.stringify(req.body); // Fallback to body string if rawBody missed
 
-        // Process events
-        await Promise.all(events.map(async (event) => {
-            try {
-                console.log(`[LINE] Handling event: ${event.type} from ${event.source.type}`);
-                await handleEvent(event);
-            } catch (err) {
-                console.error(`[LINE] Error handling individual event [${event.type}]:`, err);
-                // We keep moving for other events
+        // Note: LINE Verify sends a request with no events to check 200 OK
+        if (!signature && req.body.events?.length === 0) {
+            return res.status(200).send('Verify OK');
+        }
+
+        if (bot.channelSecret && signature) {
+            // If secret exists, we MUST validate
+            const isValid = validateSignature(body, bot.channelSecret, signature);
+            if (!isValid) {
+                console.error(`[WEBHOOK] Invalid signature for bot: ${bot.name}`);
+                return res.status(401).send('Invalid signature');
             }
-        }));
+        }
 
-        res.status(200).json({ status: 'ok' });
+        // 3. Process Events
+        const events: WebhookEvent[] = req.body.events;
+        if (!events || events.length === 0) {
+            return res.status(200).send('OK');
+        }
+
+        const client = new Client({
+            channelAccessToken: bot.channelAccessToken,
+            channelSecret: bot.channelSecret || undefined
+        });
+
+        await Promise.all(events.map(event => handleEvent(event, client)));
+
+        res.status(200).send('OK');
     } catch (error: any) {
-        console.error('[LINE] Webhook Handler Crash:', error);
-        res.status(500).json({ error: error.message });
+        console.error(`[WEBHOOK ERROR] Bot ${id}:`, error.message);
+        res.status(500).send('Internal Server Error');
     }
 });
 
-async function handleEvent(event: WebhookEvent) {
-    // 1. Handle Commands (e.g. !id)
+/**
+ * Default Webhook (Backward compatibility or fallback)
+ * Uses ENV variables if available
+ */
+router.post('/', (req, res, next) => {
+    const secret = process.env.LINE_CHANNEL_SECRET;
+    if (!secret) return res.status(200).send('No default bot configured');
+
+    middleware({ channelSecret: secret })(req, res, next);
+}, async (req, res) => {
+    const secret = process.env.LINE_CHANNEL_SECRET;
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    if (!token) return res.status(200).send('OK');
+
+    const client = new Client({ channelAccessToken: token, channelSecret: secret });
+    const events: WebhookEvent[] = req.body.events;
+    await Promise.all(events.map(event => handleEvent(event, client)));
+    res.status(200).send('OK');
+});
+
+async function handleEvent(event: WebhookEvent, client: Client) {
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
 
@@ -80,16 +95,9 @@ async function handleEvent(event: WebhookEvent) {
             let targetId = '';
             let targetType = '';
 
-            if (source.type === 'group') {
-                targetId = source.groupId;
-                targetType = 'Group ID';
-            } else if (source.type === 'room') {
-                targetId = source.roomId;
-                targetType = 'Room ID';
-            } else if (source.type === 'user') {
-                targetId = source.userId;
-                targetType = 'User ID';
-            }
+            if (source.type === 'group') { targetId = source.groupId; targetType = 'Group ID'; }
+            else if (source.type === 'room') { targetId = source.roomId; targetType = 'Room ID'; }
+            else if (source.type === 'user') { targetId = source.userId; targetType = 'User ID'; }
 
             if (targetId) {
                 try {
@@ -97,35 +105,20 @@ async function handleEvent(event: WebhookEvent) {
                         type: 'text',
                         text: `${targetType}: ${targetId}`
                     });
-                } catch (replyError) {
-                    console.error('Error sending reply:', replyError);
-                }
+                } catch (err) { console.error('Reply failed:', err); }
             }
-            return;
         }
     }
 
-    // 2. Handle Auto-Sync for Groups
-    const isRelevantEvent = ['join', 'memberJoined', 'message'].includes(event.type);
-    if (isRelevantEvent) {
+    // Sync Group Info
+    if (['join', 'memberJoined', 'message'].includes(event.type)) {
         const source = event.source;
-
         if (source.type === 'group' && source.groupId) {
             try {
-                // Try to get group details, but don't crash if it fails (e.g. test events)
-                try {
-                    const groupSummary = await client.getGroupSummary(source.groupId);
-                    await lineGroupService.syncGroup(
-                        source.groupId,
-                        groupSummary.groupName,
-                        groupSummary.pictureUrl
-                    );
-                } catch (summaryErr) {
-                    // Fallback: search/save without details
-                    await lineGroupService.syncGroup(source.groupId);
-                }
+                const groupSummary = await client.getGroupSummary(source.groupId);
+                await lineGroupService.syncGroup(source.groupId, groupSummary.groupName, groupSummary.pictureUrl);
             } catch (err) {
-                console.error(`Failed to sync group ${source.groupId}`, err);
+                await lineGroupService.syncGroup(source.groupId);
             }
         }
     }

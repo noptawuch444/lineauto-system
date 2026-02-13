@@ -426,3 +426,5 @@
 }
 /* EXTRA RESPONSIVE */
 @media (max-width: 768px) { .bm-container { padding: 15px; } .bm-header { flex-direction: column; align-items: flex-start; gap: 15px; } .bm-add-btn { width: 100%; justify-content: center; } .bm-grid { grid-template-columns: 1fr; } .bm-form-actions { flex-direction: column; gap: 10px; } .bm-save-btn, .bm-cancel-btn { width: 100%; justify-content: center; } }
+
+.bm-webhook-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(201,168,76,0.15); } .bm-webhook-label { font-size: 11px; color: #a89878; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; } .bm-webhook-row { display: flex; align-items: center; gap: 10px; } .bm-webhook-row code { flex: 1; font-size: 11px; color: #e2c97e; word-break: break-all; opacity: 0.9; } .bm-webhook-copy { background: rgba(201,168,76,0.1); border: 1px solid #c9a84c; color: #c9a84c; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s; white-space: nowrap; } .bm-webhook-copy:hover { background: #c9a84c; color: #000; }

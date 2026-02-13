@@ -246,6 +246,25 @@ export default function BotManagement() {
                             <ShieldCheck size={14} />
                             <span>Token: {bot.channelAccessToken.substring(0, 15)}...{bot.channelAccessToken.slice(-10)}</span>
                         </div>
+
+                        <div className="bm-webhook-box">
+                            <div className="bm-webhook-label">Webhook URL (นำไปใส่ใน LINE Developers)</div>
+                            <div className="bm-webhook-row">
+                                <code id={`webhook-${bot.id}`}>
+                                    {window.location.origin}/webhook/{bot.id}
+                                </code>
+                                <button
+                                    className="bm-webhook-copy"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/webhook/${bot.id}`);
+                                        alert('คัดลอกลิงก์ Webhook แล้ว!');
+                                    }}
+                                >
+                                    คัดลอก
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="bm-card-actions">
                             <button className="bm-edit-btn" onClick={() => startEdit(bot)}>
                                 <Edit3 size={16} /> แก้ไข
