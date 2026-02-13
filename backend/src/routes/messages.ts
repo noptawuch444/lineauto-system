@@ -7,16 +7,13 @@ import { PrismaClient } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Configure multer for file uploads
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
+    destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
@@ -25,32 +22,28 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-    limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880') // 5MB default
-    },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'));
-        }
-    }
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') } // 10MB
 });
 
 // POST /api/messages - Create scheduled message
 router.post('/', async (req, res) => {
     try {
-        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, channelAccessToken, imageFirst } = req.body;
+        const {
+            content, imageUrl, imageUrls, scheduledTime,
+            targetType, targetIds, botId, channelAccessToken, imageFirst
+        } = req.body;
 
-        if (!content || !scheduledTime || !targetType || !targetIds) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        // More descriptive 400 errors
+        const missing = [];
+        if (!content) missing.push('content');
+        if (!scheduledTime) missing.push('scheduledTime');
+        if (!targetType) missing.push('targetType');
+        if (!targetIds) missing.push('targetIds');
+
+        if (missing.length > 0) {
+            return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
         }
 
-        // Handle both single and multiple images
         let finalImageUrls = null;
         if (imageUrls && Array.isArray(imageUrls)) {
             finalImageUrls = JSON.stringify(imageUrls);
@@ -61,11 +54,12 @@ router.post('/', async (req, res) => {
         const message = await prisma.scheduledMessage.create({
             data: {
                 content,
-                imageUrl: imageUrl || null, // Keeping for backward compatibility
+                imageUrl: imageUrl || null,
                 imageUrls: finalImageUrls,
                 scheduledTime: new Date(scheduledTime),
                 targetType,
-                targetIds: JSON.stringify(targetIds),
+                targetIds: Array.isArray(targetIds) ? JSON.stringify(targetIds) : targetIds,
+                botId: botId || null,
                 channelAccessToken: channelAccessToken || null,
                 imageFirst: !!imageFirst,
                 status: 'pending'
@@ -84,24 +78,17 @@ router.get('/', async (req, res) => {
     try {
         const messages = await prisma.scheduledMessage.findMany({
             orderBy: { scheduledTime: 'asc' },
-            include: {
-                logs: {
-                    orderBy: { sentAt: 'desc' },
-                    take: 1
-                }
-            }
+            include: { logs: { orderBy: { sentAt: 'desc' }, take: 1 } }
         });
 
-        // Parse targetIds and imageUrls
         const parsedMessages = messages.map(msg => ({
             ...msg,
-            targetIds: JSON.parse(msg.targetIds),
+            targetIds: JSON.parse(msg.targetIds || '[]'),
             imageUrls: msg.imageUrls ? JSON.parse(msg.imageUrls) : (msg.imageUrl ? [msg.imageUrl] : [])
         }));
 
         res.json(parsedMessages);
     } catch (error: any) {
-        console.error('Error fetching messages:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -110,27 +97,17 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
         const message = await prisma.scheduledMessage.findUnique({
             where: { id },
-            include: {
-                logs: {
-                    orderBy: { sentAt: 'desc' }
-                }
-            }
+            include: { logs: { orderBy: { sentAt: 'desc' } } }
         });
-
-        if (!message) {
-            return res.status(404).json({ error: 'Message not found' });
-        }
-
+        if (!message) return res.status(404).json({ error: 'Message not found' });
         res.json({
             ...message,
-            targetIds: JSON.parse(message.targetIds),
+            targetIds: JSON.parse(message.targetIds || '[]'),
             imageUrls: message.imageUrls ? JSON.parse(message.imageUrls) : (message.imageUrl ? [message.imageUrl] : [])
         });
     } catch (error: any) {
-        console.error('Error fetching message:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -139,138 +116,54 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, imageFirst } = req.body;
-
-        const existingMessage = await prisma.scheduledMessage.findUnique({
-            where: { id }
-        });
-
-        if (!existingMessage) {
-            return res.status(404).json({ error: 'Message not found' });
-        }
-
-        if (existingMessage.status !== 'pending') {
-            return res.status(400).json({ error: 'Can only update pending messages' });
-        }
-
-        // Logic for updating images
-        let finalImageUrls = undefined;
-        let finalImageUrl = undefined;
-
-        if (imageUrls !== undefined) {
-            finalImageUrls = JSON.stringify(imageUrls);
-            if (imageUrls.length > 0) finalImageUrl = imageUrls[0]; // Sync legacy field
-        } else if (imageUrl !== undefined) {
-            finalImageUrl = imageUrl;
-            finalImageUrls = imageUrl ? JSON.stringify([imageUrl]) : null;
-        }
+        const { content, imageUrl, imageUrls, scheduledTime, targetType, targetIds, botId, imageFirst } = req.body;
+        const msg = await prisma.scheduledMessage.findUnique({ where: { id } });
+        if (!msg) return res.status(404).json({ error: 'Message not found' });
+        if (msg.status !== 'pending') return res.status(400).json({ error: 'Cannot update non-pending message' });
 
         const message = await prisma.scheduledMessage.update({
             where: { id },
             data: {
-                content: content || existingMessage.content,
-                imageUrl: finalImageUrl !== undefined ? finalImageUrl : existingMessage.imageUrl,
-                imageUrls: finalImageUrls !== undefined ? finalImageUrls : existingMessage.imageUrls,
-                scheduledTime: scheduledTime ? new Date(scheduledTime) : existingMessage.scheduledTime,
-                targetType: targetType || existingMessage.targetType,
-                targetIds: targetIds ? JSON.stringify(targetIds) : existingMessage.targetIds,
-                imageFirst: imageFirst !== undefined ? !!imageFirst : existingMessage.imageFirst
+                content: content || undefined,
+                imageUrl: imageUrl || undefined,
+                imageUrls: imageUrls ? JSON.stringify(imageUrls) : undefined,
+                scheduledTime: scheduledTime ? new Date(scheduledTime) : undefined,
+                targetType: targetType || undefined,
+                targetIds: targetIds ? (Array.isArray(targetIds) ? JSON.stringify(targetIds) : targetIds) : undefined,
+                botId: botId || undefined,
+                imageFirst: imageFirst !== undefined ? !!imageFirst : undefined
             }
         });
-
-        res.json({
-            ...message,
-            targetIds: JSON.parse(message.targetIds),
-            imageUrls: message.imageUrls ? JSON.parse(message.imageUrls) : (message.imageUrl ? [message.imageUrl] : [])
-        });
+        res.json(message);
     } catch (error: any) {
-        console.error('Error updating message:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// DELETE /api/messages/:id - Cancel scheduled message
+// DELETE /api/messages/:id - Cancel
 router.delete('/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-
-        const existingMessage = await prisma.scheduledMessage.findUnique({
-            where: { id }
-        });
-
-        if (!existingMessage) {
-            return res.status(404).json({ error: 'Message not found' });
-        }
-
-        if (existingMessage.status !== 'pending') {
-            return res.status(400).json({ error: 'Can only cancel pending messages' });
-        }
-
-        const message = await prisma.scheduledMessage.update({
-            where: { id },
-            data: { status: 'cancelled' }
-        });
-
-        res.json({
-            ...message,
-            targetIds: JSON.parse(message.targetIds)
-        });
+        await prisma.scheduledMessage.update({ where: { id: req.params.id }, data: { status: 'cancelled' } });
+        res.json({ success: true });
     } catch (error: any) {
-        console.error('Error cancelling message:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// POST /api/messages/upload - Upload image to Imgur
+// UPLOAD fallback
 router.post('/upload', upload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file' });
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        console.log('\n📤 Processing image upload...');
-        console.log('   Original filename:', req.file.originalname);
-        console.log('   Saved as:', req.file.filename);
-        console.log('   Size:', req.file.size, 'bytes');
-
-        // Import Imgur service
         const { uploadToImgur } = await import('../services/imgurService');
-
-        // Upload to Imgur
-        const filePath = path.join(uploadDir, req.file.filename);
-        const result = await uploadToImgur(filePath);
-
-        if (result.success && result.url) {
-            console.log('✅ Image uploaded to Imgur successfully!');
-            console.log('   HTTPS URL:', result.url);
-
-            // Delete local file after successful upload
-            try {
-                fs.unlinkSync(filePath);
-                console.log('   Local file deleted');
-            } catch (err) {
-                console.warn('   Warning: Could not delete local file');
-            }
-
-            res.json({
-                url: result.url,
-                filename: req.file.originalname,
-                message: 'Image uploaded to Imgur successfully'
-            });
+        const resImg = await uploadToImgur(path.join(uploadDir, req.file.filename));
+        if (resImg.success) {
+            fs.unlinkSync(path.join(uploadDir, req.file.filename));
+            res.json({ url: resImg.url });
         } else {
-            console.error('❌ Imgur upload failed:', result.error);
-
-            // Return local URL as fallback (won't work with LINE but better than nothing)
-            const localUrl = `/uploads/${req.file.filename}`;
-            res.status(500).json({
-                error: result.error || 'Failed to upload to Imgur',
-                fallbackUrl: localUrl,
-                message: 'Imgur upload failed. Image saved locally but LINE API requires HTTPS URL.'
-            });
+            res.json({ url: `/uploads/${req.file.filename}`, fallback: true });
         }
-    } catch (error: any) {
-        console.error('❌ Error in upload endpoint:', error);
-        res.status(500).json({ error: error.message });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
     }
 });
 
