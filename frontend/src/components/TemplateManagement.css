@@ -207,6 +207,17 @@
     box-shadow: 0 0 0 3px var(--adm-gold-glow);
 }
 
+/* Specific fix for select height/padding */
+select.adm-input {
+    padding: 0 12px;
+    cursor: pointer;
+}
+
+select.adm-input option {
+    background: #1a1a14;
+    color: var(--adm-white);
+}
+
 .adm-ta {
     resize: vertical;
     min-height: 80px;
@@ -798,6 +809,7 @@
         grid-template-columns: 1fr;
     }
 }
+
 /* Bot assignment on card */
 .adm-card-bot {
     display: flex;
@@ -818,5 +830,56 @@
 }
 
 /* RESPONSIVE DESIGN */
-@media (max-width: 1024px) { .adm-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .adm { padding: 15px; } .adm-header { flex-direction: column; align-items: flex-start; gap: 15px; } .adm-header-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; } .adm-header-actions button { width: 100%; } .adm-form-row { flex-direction: column; gap: 0; } .adm-grid { grid-template-columns: 1fr; } .adm-form-footer { flex-direction: column; gap: 10px; } .adm-btn-save, .adm-btn-clear { width: 100%; justify-content: center; } .adm-modal { width: 95%; margin: 10px; } }
+@media (max-width: 1024px) {
+    .adm-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .adm {
+        padding: 15px;
+    }
+
+    .adm-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .adm-header-actions {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .adm-header-actions button {
+        width: 100%;
+    }
+
+    .adm-form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .adm-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .adm-form-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .adm-btn-save,
+    .adm-btn-clear {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .adm-modal {
+        width: 95%;
+        margin: 10px;
+    }
+}
