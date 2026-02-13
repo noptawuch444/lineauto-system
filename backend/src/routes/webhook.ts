@@ -9,6 +9,11 @@ const config = {
     channelSecret: process.env.LINE_CHANNEL_SECRET || '',
 };
 
+// Check for required environment variables
+if (!config.channelAccessToken || !config.channelSecret) {
+    console.error('[CRITICAL] Webhook initialization failed: LINE_CHANNEL_ACCESS_TOKEN or LINE_CHANNEL_SECRET is missing!');
+}
+
 const client = new Client(config);
 
 // Webhook Diagnostic
@@ -21,94 +26,108 @@ router.get('/', (req, res) => {
     });
 });
 
-// Webhook Handler
-router.post('/', (req, res, next) => {
-    if (!config.channelAccessToken || !config.channelSecret) {
-        console.error('[CRITICAL] LINE_CHANNEL_ACCESS_TOKEN or LINE_CHANNEL_SECRET is missing!');
+/**
+ * Custom middleware to handle LINE verification and signature checking
+ */
+const lineMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!config.channelSecret) {
+        console.error('[ERROR] Cannot verify signature: LINE_CHANNEL_SECRET is empty');
+        return res.status(500).send('Channel Secret Missing');
     }
-    next();
-}, middleware(config), async (req, res) => {
+
+    // The middleware(config) returns a function that expects (req, res, next)
+    return middleware(config)(req, res, next);
+};
+
+// Webhook Handler
+router.post('/', lineMiddleware, async (req, res) => {
     try {
         const events: WebhookEvent[] = req.body.events;
-        console.log(`[LINE] Received ${events?.length || 0} events`);
 
+        // Handle case where events might be missing (e.g., some test requests)
+        if (!events || !Array.isArray(events)) {
+            console.log('[LINE] Webhook received but no events found in body');
+            return res.status(200).json({ status: 'ok', message: 'No events' });
+        }
+
+        console.log(`[LINE] Received ${events.length} events`);
+
+        // Process events
         await Promise.all(events.map(async (event) => {
-            console.log(`[LINE] Handling event: ${event.type} from ${event.source.type}`);
-            await handleEvent(event);
+            try {
+                console.log(`[LINE] Handling event: ${event.type} from ${event.source.type}`);
+                await handleEvent(event);
+            } catch (err) {
+                console.error(`[LINE] Error handling individual event [${event.type}]:`, err);
+                // We keep moving for other events
+            }
         }));
 
         res.status(200).json({ status: 'ok' });
-    } catch (error) {
-        console.error('[LINE] Webhook Error:', error);
-        res.status(500).end();
+    } catch (error: any) {
+        console.error('[LINE] Webhook Handler Crash:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
 async function handleEvent(event: WebhookEvent) {
+    // 1. Handle Commands (e.g. !id)
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
-        console.log(`Received text message: "${text}"`);
+
         if (text === '!id' || text === '.id') {
-            console.log('Command matched: !id or .id');
             const source = event.source;
-            let id = '';
-            let type = '';
+            let targetId = '';
+            let targetType = '';
 
             if (source.type === 'group') {
-                id = source.groupId;
-                type = 'Group ID';
+                targetId = source.groupId;
+                targetType = 'Group ID';
             } else if (source.type === 'room') {
-                id = source.roomId;
-                type = 'Room ID';
+                targetId = source.roomId;
+                targetType = 'Room ID';
             } else if (source.type === 'user') {
-                id = source.userId;
-                type = 'User ID';
+                targetId = source.userId;
+                targetType = 'User ID';
             }
 
-            if (id) {
+            if (targetId) {
                 try {
                     await client.replyMessage(event.replyToken, {
                         type: 'text',
-                        text: `${type}: ${id}`
+                        text: `${targetType}: ${targetId}`
                     });
-                    console.log(`Successfully replied with ${type}`);
                 } catch (replyError) {
-                    console.error('Error sending reply message:', replyError);
+                    console.error('Error sending reply:', replyError);
                 }
             }
             return;
         }
     }
 
-    if (event.type === 'join' || event.type === 'memberJoined' || event.type === 'message') {
+    // 2. Handle Auto-Sync for Groups
+    const isRelevantEvent = ['join', 'memberJoined', 'message'].includes(event.type);
+    if (isRelevantEvent) {
         const source = event.source;
 
         if (source.type === 'group' && source.groupId) {
-            console.log(`Bot detected in group: ${source.groupId}`);
-
-            // Fetch group summary to get name and picture
             try {
-                const groupSummary = await client.getGroupSummary(source.groupId);
-                await lineGroupService.syncGroup(
-                    source.groupId,
-                    groupSummary.groupName,
-                    groupSummary.pictureUrl
-                );
-                console.log(`Synced group: ${groupSummary.groupName} (${source.groupId})`);
+                // Try to get group details, but don't crash if it fails (e.g. test events)
+                try {
+                    const groupSummary = await client.getGroupSummary(source.groupId);
+                    await lineGroupService.syncGroup(
+                        source.groupId,
+                        groupSummary.groupName,
+                        groupSummary.pictureUrl
+                    );
+                } catch (summaryErr) {
+                    // Fallback: search/save without details
+                    await lineGroupService.syncGroup(source.groupId);
+                }
             } catch (err) {
-                console.error(`Failed to fetch group summary for ${source.groupId}`, err);
-                // Still save the ID even if summary fails
-                await lineGroupService.syncGroup(source.groupId);
+                console.error(`Failed to sync group ${source.groupId}`, err);
             }
-        } else if (source.type === 'room' && source.roomId) {
-            // Optional: Handle rooms similarly if needed, currently focusing on Groups
-            console.log(`Bot detected in room: ${source.roomId}`);
         }
-    }
-
-    // Handle Leave event to maybe mark as inactive (Optional, purely based on requirements)
-    if (event.type === 'leave' && event.source.type === 'group') {
-        console.log(`Bot left group: ${event.source.groupId}`);
     }
 }
 
