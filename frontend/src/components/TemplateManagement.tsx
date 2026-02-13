@@ -370,7 +370,16 @@ export default function TemplateManagement() {
                             <div className="adm-modal-head">
                                 <h3><Database size={20} /> รายชื่อกลุ่มที่บอทพบ</h3>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <button className="adm-btn-refresh" onClick={fetchLineGroups} title="รีเฟรช">
+                                    <select
+                                        className="adm-input"
+                                        style={{ width: '150px', fontSize: '12px', height: '32px' }}
+                                        value={formData.botId}
+                                        onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {bots.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                    <button className="adm-btn-refresh" onClick={() => fetchLineGroups(formData.botId)} title="รีเฟรช">
                                         <RotateCw size={18} />
                                     </button>
                                     <button className="adm-modal-close" onClick={() => setShowGroupCatalog(false)}><X size={20} /></button>
@@ -379,7 +388,11 @@ export default function TemplateManagement() {
                             <div className="adm-modal-body">
                                 <div className="adm-group-list">
                                     {lineGroups.length === 0 ? (
-                                        <p className="adm-empty-p">ห้าพบข้อมูลกลุ่ม (กรุณาเชิญบอทเข้ากลุ่มก่อน)</p>
+                                        <div className="adm-empty-box">
+                                            <AlertTriangle size={32} />
+                                            <p>ไม่พบข้อมูลกลุ่มสำหรับบอทที่เลือก</p>
+                                            <p style={{ fontSize: '12px', opacity: 0.7 }}>กรุณาเชิญบอทเข้ากลุ่ม หรือพิมพ์ <code>!reg</code> ในกลุ่ม</p>
+                                        </div>
                                     ) : lineGroups.map(g => (
                                         <div key={g.groupId} className="adm-group-item">
                                             <div className="adm-group-icon">
@@ -387,6 +400,9 @@ export default function TemplateManagement() {
                                             </div>
                                             <div className="adm-group-info">
                                                 <strong>{g.groupName || 'Unknown Name'}</strong>
+                                                <div className="adm-group-bot">
+                                                    <Bot size={10} /> {g.bot?.name || 'บอทเริ่มต้น'}
+                                                </div>
                                                 <code>{g.groupId}</code>
                                             </div>
                                             <button className="adm-btn-copy-id" onClick={() => {

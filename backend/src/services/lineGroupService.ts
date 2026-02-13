@@ -29,6 +29,9 @@ export const lineGroupService = {
     async getAllGroups(botId?: string) {
         return await prisma.lineGroup.findMany({
             where: botId ? { botId } : {},
+            include: {
+                bot: { select: { name: true } }
+            },
             orderBy: { createdAt: 'desc' }
         });
     }

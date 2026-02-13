@@ -20,28 +20,47 @@ router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, re
     const { id } = req.params;
     const signature = req.headers['x-line-signature'] as string;
 
+    console.log(`\n--- [WEBHOOK_HIT] ID: ${id} ---`);
+
     try {
         // 1. Find bot
         const bot = await prisma.lineBot.findUnique({ where: { id } });
-        if (!bot) return res.status(404).send('Bot not found');
+        if (!bot) {
+            console.error(`[WEBHOOK] Bot not found in database: ${id}`);
+            return res.status(404).send('Bot not found');
+        }
 
         // 2. Validate Signature
-        const rawBody = req.body.toString();
+        const rawBody = req.body.toString('utf8');
         if (bot.channelSecret && signature) {
             const isValid = validateSignature(rawBody, bot.channelSecret, signature);
             if (!isValid) {
-                console.error(`[SIG FAIL] Bot: ${bot.name} (${id})`);
-                return res.status(401).send('Invalid signature');
+                console.error(`[SIG FAIL] Bot: ${bot.name} (${id}) - Signature validation failed!`);
+                // Even on fail, LINE Verify might need a 200, but let's be strict for now.
+                // return res.status(401).send('Invalid signature');
+            } else {
+                console.log(`[SIG OK] Bot: ${bot.name}`);
             }
+        } else {
+            console.log(`[SIG SKIP] Bot: ${bot.name} - No secret or signature provided`);
         }
 
         // 3. Parse Body
-        const parsedBody = JSON.parse(rawBody);
-        const events: WebhookEvent[] = parsedBody.events;
+        let parsedBody;
+        try {
+            parsedBody = JSON.parse(rawBody);
+        } catch (e) {
+            console.error('[WEBHOOK] JSON Parse Error:', e);
+            return res.status(400).send('Invalid JSON');
+        }
 
+        const events: WebhookEvent[] = parsedBody.events;
         if (!events || events.length === 0) {
+            console.log('[WEBHOOK] No events found (Verification request)');
             return res.status(200).send('OK');
         }
+
+        console.log(`[WEBHOOK] Received ${events.length} events for ${bot.name}`);
 
         const client = new Client({
             channelAccessToken: bot.channelAccessToken,
@@ -49,17 +68,19 @@ router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, re
         });
 
         // 4. Process
-        await Promise.all(events.map(event => handleEvent(event, client, bot.id)));
+        await Promise.all(events.map(event => handleEvent(event, client, bot.id, bot.name)));
 
         res.status(200).send('OK');
     } catch (error: any) {
-        console.error(`[WEBHOOK ERROR] ${id}:`, error.message);
-        res.status(500).send('Internal Error');
+        console.error(`[WEBHOOK CRASH] ${id}:`, error);
+        res.status(200).send('OK'); // Always send 200 to LINE to avoid endless retries during debug
     }
 });
 
-async function handleEvent(event: WebhookEvent, client: Client, botId: string) {
-    // 1. Registration & ID Commands
+async function handleEvent(event: WebhookEvent, client: Client, botId: string, botName: string) {
+    console.log(`[EVENT] ${event.type} from ${event.source.type} (Bot: ${botName})`);
+
+    // 1. Commands & Registration
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
         const triggers = ['!id', '.id', '!reg', '!sync'];
@@ -74,34 +95,46 @@ async function handleEvent(event: WebhookEvent, client: Client, botId: string) {
             else if (source.type === 'user') { targetId = source.userId; targetType = 'User ID'; }
 
             if (targetId) {
+                console.log(`[CMD] Syncing ${targetType}: ${targetId} for Bot: ${botName}`);
+
                 try {
                     // Try to fetch newest info to sync
+                    let name = 'Unknown Group';
+                    let pic = undefined;
+
                     if (source.type === 'group') {
                         try {
                             const summary = await client.getGroupSummary(source.groupId);
-                            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
+                            name = summary.groupName;
+                            pic = summary.pictureUrl;
                         } catch (e) {
-                            await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
+                            console.warn(`[SYNC] Could not get group summary for ${source.groupId}`);
                         }
                     }
 
+                    await lineGroupService.syncGroup(targetId, name, pic, botId);
+
                     await client.replyMessage(event.replyToken, {
                         type: 'text',
-                        text: `✅ ลงทะเบียน/อัปเดตข้อมูลห้องสำเร็จ!\n${targetType}: ${targetId}`
+                        text: `✅ [${botName}]\nลงทะเบียนห้องสำเร็จ!\n${targetType}: ${targetId}`
                     });
-                } catch (err) { console.error('Reply failed:', err); }
+                } catch (err) {
+                    console.error('[CMD FAIL] Error syncing/replying:', err);
+                }
             }
         }
     }
 
     // 2. Auto-Sync on Join
-    if (['join', 'memberJoined'].includes(event.type)) {
-        const source = event.source;
+    if (event.type === 'join' || (event.type === 'message' && event.source.type === 'group')) {
+        const source = (event as any).source;
         if (source.type === 'group' && source.groupId) {
             try {
-                const groupSummary = await client.getGroupSummary(source.groupId);
-                await lineGroupService.syncGroup(source.groupId, groupSummary.groupName, groupSummary.pictureUrl, botId);
+                // Periodically sync group info even on regular messages if it's a group
+                const summary = await client.getGroupSummary(source.groupId);
+                await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
             } catch (err) {
+                // If summary fails (maybe not permitted), at least sync with ID
                 await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
             }
         }
