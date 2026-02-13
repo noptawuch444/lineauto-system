@@ -2,33 +2,47 @@ import cron from 'node-cron';
 import { sendScheduledMessage } from './lineService';
 import prisma from './db';
 
+let isProcessing = false;
+
 /**
  * Check for pending messages and send them if it's time
  */
 async function checkAndSendMessages() {
+    if (isProcessing) return; // Prevent overlapping runs
+
     try {
+        isProcessing = true;
         const now = new Date();
 
-        // Find all pending messages that should be sent now
+        // 1. Fetch pending messages
         const pendingMessages = await prisma.scheduledMessage.findMany({
             where: {
                 status: 'pending',
                 scheduledTime: { lte: now }
             },
-            take: 50 // Bulk process limit per minute
+            take: 50
         });
 
         if (pendingMessages.length === 0) return;
 
-        console.log(`📨 [OPTIMIZED] Processing ${pendingMessages.length} message(s) in parallel...`);
+        console.log(`📨 [OPTIMIZED] Processing ${pendingMessages.length} message(s)...`);
 
-        // Process in parallel using Promise.all
+        // 2. Mark as 'sending' immediately to prevent other runs from picking them up
+        const messageIds = pendingMessages.map(m => m.id);
+        await prisma.scheduledMessage.updateMany({
+            where: { id: { in: messageIds } },
+            data: { status: 'sending' }
+        });
+
+        // 3. Process each message
         await Promise.all(pendingMessages.map(async (message) => {
+            let finalStatus: 'sent' | 'failed' = 'failed';
+            let errorMessage: string | null = null;
+
             try {
                 const targetIds = JSON.parse(message.targetIds);
                 const imageUrls = message.imageUrls ? JSON.parse(message.imageUrls) : undefined;
 
-                // Send the message via LINE API
                 const result = await sendScheduledMessage(
                     message.targetType,
                     targetIds,
@@ -40,34 +54,32 @@ async function checkAndSendMessages() {
                     message.botId || undefined
                 );
 
-                const finalStatus = result.success ? 'sent' : 'failed';
-
-                // Concurrent atomic update
+                finalStatus = result.success ? 'sent' : 'failed';
+                errorMessage = result.success ? null : (result.error || 'Unknown error');
+            } catch (err: any) {
+                console.error(`💥 Error processing message ${message.id}:`, err.message);
+                errorMessage = err.message;
+            } finally {
+                // 4. Update final result and log
                 await prisma.$transaction([
                     prisma.scheduledMessage.update({
                         where: { id: message.id },
-                        data: { status: finalStatus as any }
+                        data: { status: finalStatus }
                     }),
                     prisma.messageLog.create({
                         data: {
                             messageId: message.id,
                             status: finalStatus,
-                            error: result.success ? null : (result.error || 'Unknown error')
+                            error: errorMessage
                         }
                     })
                 ]);
-
-                console.log(`${result.success ? '✅' : '❌'} Message ${message.id} complete: ${finalStatus}`);
-            } catch (err: any) {
-                console.error(`💥 Critical fail for message ${message.id}:`, err.message);
-                await prisma.scheduledMessage.update({
-                    where: { id: message.id },
-                    data: { status: 'failed' }
-                }).catch(() => { });
             }
         }));
     } catch (error) {
         console.error('Error in scheduler:', error);
+    } finally {
+        isProcessing = false;
     }
 }
 

@@ -1,8 +1,14 @@
 import { Client, ClientConfig, TextMessage, ImageMessage } from '@line/bot-sdk';
 import prisma from './db';
 
+// Cache for LINE Clients
+const clientCache: Record<string, Client> = {};
+
 // Function to get fresh credentials from database if botId provided, or use token/env
 async function getClient(token?: string, botId?: string): Promise<Client> {
+    const cacheKey = botId || token || 'default';
+    if (clientCache[cacheKey]) return clientCache[cacheKey];
+
     let accessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
     let secret = process.env.LINE_CHANNEL_SECRET || '';
 
@@ -12,7 +18,6 @@ async function getClient(token?: string, botId?: string): Promise<Client> {
             if (bot && bot.isActive) {
                 accessToken = bot.channelAccessToken;
                 secret = bot.channelSecret || secret;
-                console.log(`🤖 Using Bot ID: ${botId} Name: ${bot.name}`);
             }
         } catch (dbErr) {
             console.error('Error fetching bot details from DB:', dbErr);
@@ -23,7 +28,10 @@ async function getClient(token?: string, botId?: string): Promise<Client> {
         channelAccessToken: accessToken,
         channelSecret: secret,
     };
-    return new Client(config);
+
+    const client = new Client(config);
+    clientCache[cacheKey] = client;
+    return client;
 }
 
 export interface MessageTarget {

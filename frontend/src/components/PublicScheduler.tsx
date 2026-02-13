@@ -80,21 +80,7 @@ export default function PublicScheduler() {
             });
         }
 
-        const drawFlakes = () => {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, width, height);
-
-            for (let i = 0; i < flakeCount; i++) {
-                const f = flakes[i];
-                ctx.beginPath();
-                ctx.fillStyle = f.color;
-                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
-                ctx.fill();
-            }
-            moveFlakes();
-            requestAnimationFrame(drawFlakes);
-        };
-
+        let animId: number;
         let angle = 0;
         const moveFlakes = () => {
             angle += 0.01;
@@ -111,7 +97,22 @@ export default function PublicScheduler() {
             }
         };
 
-        const animId = requestAnimationFrame(drawFlakes);
+        const drawFlakes = () => {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = 0; i < flakeCount; i++) {
+                const f = flakes[i];
+                ctx.beginPath();
+                ctx.fillStyle = f.color;
+                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
+                ctx.fill();
+            }
+            moveFlakes();
+            animId = requestAnimationFrame(drawFlakes);
+        };
+
+        drawFlakes();
 
         const handleResize = () => {
             width = canvas.width = window.innerWidth;
