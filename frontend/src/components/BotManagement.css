@@ -424,3 +424,5 @@
         width: 100%;
     }
 }
+/* EXTRA RESPONSIVE */
+@media (max-width: 768px) { .bm-container { padding: 15px; } .bm-header { flex-direction: column; align-items: flex-start; gap: 15px; } .bm-add-btn { width: 100%; justify-content: center; } .bm-grid { grid-template-columns: 1fr; } .bm-form-actions { flex-direction: column; gap: 10px; } .bm-save-btn, .bm-cancel-btn { width: 100%; justify-content: center; } }

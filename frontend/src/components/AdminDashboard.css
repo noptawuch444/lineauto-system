@@ -217,3 +217,5 @@
 .group-info small {
     color: #94a3b8;
 }
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) { .users-grid { grid-template-columns: 1fr; } .user-card { padding: 1rem; } .user-avatar { width: 50px; height: 50px; font-size: 1.2rem; } .group-tags { gap: 0.3rem; } .group-tag { font-size: 0.75rem; padding: 0.2rem 0.5rem; } }

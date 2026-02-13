@@ -48,7 +48,7 @@
     color: var(--white);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden;
     position: relative;
     z-index: 1;
 }
@@ -73,7 +73,7 @@
     pointer-events: none;
     /* Fixed Background Container - Behind UI elements */
     z-index: 5;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 /* Grid and Lines removed */
@@ -222,7 +222,7 @@
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: hidden;
     border: 1px solid var(--border-h);
     flex-shrink: 0;
 }
@@ -348,7 +348,7 @@
     grid-template-columns: 5fr 6fr;
     gap: 12px;
     padding: 12px 20px;
-    overflow: hidden;
+    overflow-x: hidden;
     z-index: 1;
 }
 
@@ -360,7 +360,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .g-panel-head {
@@ -412,7 +412,7 @@
     padding: 14px 16px;
     gap: 12px;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .g-fg {
@@ -506,7 +506,7 @@
     position: relative;
     aspect-ratio: 4/3;
     border-radius: 8px;
-    overflow: hidden;
+    overflow-x: hidden;
     border: 1px solid var(--border-h);
     background: var(--input-bg);
     transition: all .2s ease;
@@ -549,7 +549,7 @@
     font-size: 10px;
     font-weight: 500;
     color: var(--white);
-    overflow: hidden;
+    overflow-x: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -863,7 +863,7 @@
     cursor: pointer;
     transition: all .15s;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .g-msg::before {
@@ -994,7 +994,7 @@
     font-size: 15px;
     color: var(--gray);
     line-height: 1.5;
-    overflow: hidden;
+    overflow-x: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1051,7 +1051,7 @@
     width: 68px;
     height: 68px;
     border-radius: 8px;
-    overflow: hidden;
+    overflow-x: hidden;
     border: 1px solid var(--border-h);
     transition: transform .15s;
 }
@@ -1158,7 +1158,7 @@
     border-radius: 12px;
     display: flex;
     align-items: center;
-    overflow: hidden;
+    overflow-x: hidden;
     transition: all 0.2s ease;
 }
 
@@ -1321,3 +1321,6 @@
     font-size: 13px;
     font-weight: 600;
 }
+/* RESPONSIVE DESIGN FOR MOBILE */
+@media (max-width: 900px) { .g { overflow: auto; height: auto; min-height: 100vh; } .g-nav { height: auto; flex-direction: column; padding: 20px; gap: 15px; } .g-nav-l, .g-nav-r { width: 100%; justify-content: center; } .g-status { align-items: center; } .g-body { grid-template-columns: 1fr; height: auto; overflow: visible; padding: 10px; } .g-panel { height: auto; min-height: 400px; } .g-gallery { grid-template-columns: repeat(2, 1fr); } .g-actions { flex-direction: column; } .g-btn-save, .g-btn-clear { width: 100%; } .g-tpl { display: none; } }
+@media (max-width: 480px) { .g-nav { padding: 15px; } .g-brand { font-size: 18px; } .g-gallery { grid-template-columns: 1fr; } .g-panel-head { font-size: 14px; } }

@@ -44,7 +44,8 @@ body {
   font-family: 'Prompt', sans-serif;
   background-color: var(--bg-main);
   color: var(--text-primary);
-  overflow: hidden;
+  /* overflow: hidden; Removed to allow scroll on mobile */
+  min-height: 100vh;
 }
 
 #root {
@@ -52,7 +53,7 @@ body {
 }
 
 .app {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -332,3 +333,7 @@ body {
     transform: rotate(360deg);
   }
 }
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) { .top-nav { padding: 0 20px; } .main-content-area { padding: 20px; } }
+@media (max-width: 768px) { .top-nav { height: auto; flex-direction: column; padding: 15px 20px; gap: 15px; } .nav-spacer { display: none; } .nav-status-wrap { width: 100%; justify-content: space-between; } .nav-brand-wrap { width: 100%; justify-content: center; } .main-content-area { padding: 15px; overflow: visible; } .admin-tabs { flex-wrap: wrap; justify-content: center; } .admin-tab { padding: 10px 15px; font-size: 14px; } .admin-content { overflow: visible; } }
+@media (max-width: 480px) { .nav-status { display: none; } .user-profile-badge { width: 100%; justify-content: center; } .nav-brand-name { font-size: 18px; } }
