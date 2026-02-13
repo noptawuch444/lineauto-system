@@ -371,8 +371,7 @@ export default function TemplateManagement() {
                                 <h3><Database size={20} /> รายชื่อกลุ่มที่บอทพบ</h3>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     <select
-                                        className="adm-input"
-                                        style={{ width: '150px', fontSize: '12px', height: '32px' }}
+                                        className="adm-select-sm"
                                         value={formData.botId}
                                         onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
                                     >

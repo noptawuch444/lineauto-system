@@ -29,6 +29,13 @@
     font-family: 'Prompt', sans-serif;
 }
 
+.adm input,
+.adm select,
+.adm textarea,
+.adm button {
+    font-family: 'Prompt', sans-serif;
+}
+
 /* Background Layers */
 .adm-bg-anim {
     position: fixed;
@@ -198,6 +205,30 @@
     font-size: 15px;
     width: 100%;
     transition: all 0.2s;
+}
+
+.adm-select-sm {
+    width: 140px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px !important;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--adm-gold-glow);
+    border-radius: 8px;
+    color: var(--adm-gold-light);
+    cursor: pointer;
+    font-family: 'Prompt', sans-serif;
+}
+
+.adm-select-sm:focus {
+    outline: none;
+    border-color: var(--adm-gold);
+    box-shadow: 0 0 10px var(--adm-gold-glow);
+}
+
+.adm-select-sm option {
+    background: var(--adm-surface-2);
+    color: var(--adm-white);
 }
 
 .adm-input:focus,
@@ -472,7 +503,7 @@
 .adm-btn-del {
     width: 40px;
     background: rgba(224, 85, 85, 0.05);
-    color: var(--red);
+    color: #e05555;
     border: 1px solid rgba(224, 85, 85, 0.1);
     border-radius: 8px;
     display: flex;
@@ -482,7 +513,7 @@
 }
 
 .adm-btn-del:hover {
-    background: var(--red);
+    background: #e05555;
     color: white;
 }
 
@@ -670,6 +701,17 @@
     gap: 10px;
 }
 
+.adm-empty-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--adm-dim);
+    gap: 15px;
+    text-align: center;
+}
+
 .adm-group-item {
     display: flex;
     align-items: center;
@@ -723,6 +765,16 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.adm-group-bot {
+    font-size: 10px;
+    color: var(--adm-gray);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+    font-weight: 600;
 }
 
 .adm-group-info code {
@@ -798,25 +850,3 @@
         grid-template-columns: 1fr;
     }
 }
-/* Bot assignment on card */
-.adm-card-bot {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 12px;
-    padding: 6px 12px;
-    background: rgba(201, 168, 76, 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(201, 168, 76, 0.1);
-    font-size: 13px;
-    color: var(--primary-light);
-    font-weight: 500;
-}
-
-.adm-bot-icon {
-    color: var(--primary);
-}
-
-/* RESPONSIVE DESIGN */
-@media (max-width: 1024px) { .adm-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .adm { padding: 15px; } .adm-header { flex-direction: column; align-items: flex-start; gap: 15px; } .adm-header-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; } .adm-header-actions button { width: 100%; } .adm-form-row { flex-direction: column; gap: 0; } .adm-grid { grid-template-columns: 1fr; } .adm-form-footer { flex-direction: column; gap: 10px; } .adm-btn-save, .adm-btn-clear { width: 100%; justify-content: center; } .adm-modal { width: 95%; margin: 10px; } }
