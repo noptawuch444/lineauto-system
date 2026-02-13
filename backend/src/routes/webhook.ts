@@ -52,22 +52,32 @@ router.post('/', bodyParser.raw({ type: 'application/json' }), async (req, res) 
             targetBot = allBots[0];
         }
 
-        if (!targetBot) return res.status(200).send('OK');
+        // Send 200 OK immediately to satisfy LINE's requirement (< 1s)
+        res.status(200).send('OK');
 
-        const client = new Client({
-            channelAccessToken: targetBot.channelAccessToken.trim(),
-            channelSecret: targetBot.channelSecret?.trim() || undefined
-        });
+        // Process in background to avoid timeouts
+        if (targetBot) {
+            (async () => {
+                try {
+                    if (events.length > 0) {
+                        const client = new Client({
+                            channelAccessToken: targetBot.channelAccessToken.trim(),
+                            channelSecret: targetBot.channelSecret?.trim() || undefined
+                        });
 
-        // 3. ประมวลผลและ Sync กลุ่ม
-        if (events.length > 0) {
-            await Promise.all(events.map(event => handleEvent(event, client, targetBot!.id, targetBot!.name)));
+                        for (const event of events) {
+                            await handleEvent(event, client, targetBot.id, targetBot.name);
+                        }
+                    }
+                } catch (bgError: any) {
+                    console.error('[WEBHOOK BG ERROR]', bgError.message);
+                }
+            })();
         }
-
-        res.status(200).send('OK');
     } catch (error: any) {
-        console.error('[WEBHOOK ERROR]', error.message);
-        res.status(200).send('OK');
+        // Still send OK even on error to prevent LINE from retrying excessively
+        if (!res.headersSent) res.status(200).send('OK');
+        console.error('[WEBHOOK ROOT ERROR]', error.message);
     }
 });
 

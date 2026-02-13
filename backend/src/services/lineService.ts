@@ -6,9 +6,6 @@ const clientCache: Record<string, Client> = {};
 
 // Function to get fresh credentials from database if botId provided, or use token/env
 async function getClient(token?: string, botId?: string): Promise<Client> {
-    const cacheKey = botId || token || 'default';
-    if (clientCache[cacheKey]) return clientCache[cacheKey];
-
     let accessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
     let secret = process.env.LINE_CHANNEL_SECRET || '';
 
@@ -16,23 +13,22 @@ async function getClient(token?: string, botId?: string): Promise<Client> {
         try {
             const bot = await prisma.lineBot.findUnique({ where: { id: botId } });
             if (bot && bot.isActive) {
-                accessToken = bot.channelAccessToken;
-                secret = bot.channelSecret || secret;
+                accessToken = bot.channelAccessToken.trim();
+                secret = bot.channelSecret?.trim() || secret;
             }
         } catch (dbErr) {
             console.error('Error fetching bot details from DB:', dbErr);
         }
     }
 
-    const config: ClientConfig = {
+    // Return a new client to ensure fresh config/token
+    return new Client({
         channelAccessToken: accessToken,
         channelSecret: secret,
-    };
-
-    const client = new Client(config);
-    clientCache[cacheKey] = client;
-    return client;
+    });
 }
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export interface MessageTarget {
     type: 'user' | 'group' | 'room';
@@ -62,21 +58,18 @@ export async function sendTextMessage(
             text,
         };
 
-        // Send to all target IDs
-        const promises = target.ids.map(async (id) => {
+        // Send to all target IDs sequentially with small delay to avoid rate limits
+        const results = [];
+        for (const id of target.ids) {
             try {
-                console.log(`\n📤 Sending to ${id}...`);
                 await client.pushMessage(id, message);
-                console.log(`✅ Success: ${id}`);
-                return { id, success: true };
+                results.push({ id, success: true });
+                if (target.ids.length > 5) await sleep(100); // 100ms throttle
             } catch (error: any) {
-                console.error(`\n❌ Failed to send to ${id}`);
-                console.error('   Error message:', error.message);
-                return { id, success: false, error: error.message };
+                console.error(`❌ [Failed] ${id}: ${error.message}`);
+                results.push({ id, success: false, error: error.message });
             }
-        });
-
-        const results = await Promise.all(promises);
+        }
         const failed = results.filter(r => !r.success);
 
         if (failed.length > 0) {
@@ -143,17 +136,18 @@ export async function sendImageMessage(
 
         if (messages.length === 0) return { success: false, error: 'No content to send' };
 
-        const promises = target.ids.map(async (id) => {
+        // Sequential sending with throttle
+        const results = [];
+        for (const id of target.ids) {
             try {
                 await client.pushMessage(id, messages);
-                return { id, success: true };
+                results.push({ id, success: true });
+                if (target.ids.length > 5) await sleep(100);
             } catch (error: any) {
-                console.error(`\n❌ Failed to ${id}:`, error.message);
-                return { id, success: false, error: error.message };
+                console.error(`❌ [Failed] ${id}: ${error.message}`);
+                results.push({ id, success: false, error: error.message });
             }
-        });
-
-        const results = await Promise.all(promises);
+        }
         const failed = results.filter(r => !r.success);
 
         if (failed.length > 0) return { success: false, error: 'Failed to send to some targets' };

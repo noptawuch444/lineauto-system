@@ -34,8 +34,8 @@ async function checkAndSendMessages() {
             data: { status: 'sending' }
         });
 
-        // 3. Process each message
-        await Promise.all(pendingMessages.map(async (message) => {
+        // 3. Process each message sequentially for STABILITY
+        for (const message of pendingMessages) {
             let finalStatus: 'sent' | 'failed' = 'failed';
             let errorMessage: string | null = null;
 
@@ -57,25 +57,22 @@ async function checkAndSendMessages() {
                 finalStatus = result.success ? 'sent' : 'failed';
                 errorMessage = result.success ? null : (result.error || 'Unknown error');
             } catch (err: any) {
-                console.error(`💥 Error processing message ${message.id}:`, err.message);
+                console.error(`💥 [Critical] Message ${message.id}:`, err.message);
                 errorMessage = err.message;
-            } finally {
-                // 4. Update final result and log
+            }
+
+            // 4. Update final result and log
+            try {
                 await prisma.$transaction([
-                    prisma.scheduledMessage.update({
-                        where: { id: message.id },
-                        data: { status: finalStatus }
-                    }),
+                    prisma.scheduledMessage.update({ where: { id: message.id }, data: { status: finalStatus } }),
                     prisma.messageLog.create({
-                        data: {
-                            messageId: message.id,
-                            status: finalStatus,
-                            error: errorMessage
-                        }
+                        data: { messageId: message.id, status: finalStatus, error: errorMessage }
                     })
                 ]);
+            } catch (dbErr: any) {
+                console.error(`❌ DB Sync Failed for ${message.id}:`, dbErr.message);
             }
-        }));
+        }
     } catch (error) {
         console.error('Error in scheduler:', error);
     } finally {
