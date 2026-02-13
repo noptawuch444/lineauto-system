@@ -24,11 +24,7 @@ const PORT = process.env.PORT || 3000;
 app.use(compression());
 app.use(cors());
 // Routes
-app.use('/webhook', (req, res, next) => {
-    console.log(`[DEBUG] Webhook path hit: ${req.method} ${req.url}`);
-    console.log(`[DEBUG] Headers:`, JSON.stringify(req.headers));
-    next();
-}, webhookRoutes);
+app.use('/webhook', webhookRoutes);
 
 // JSON and URL Parsers (Applied AFTER webhook to preserve raw body for signature verification)
 app.use(express.json({ limit: '10mb' }));

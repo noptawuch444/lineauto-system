@@ -6,55 +6,35 @@ import bodyParser from 'body-parser';
 
 const router = express.Router();
 
-// Middleware สำหรับดึง Raw Body ไว้เช็ค Signature (จำเป็นมากสำหรับ Multi-Bot)
-const rawParser = bodyParser.raw({ type: 'application/json' });
-
-/**
- * GET /webhook
- * สำหรับให้คุณเช็คเองผ่าน Browser ว่าระบบออนไลน์ไหม
- */
+// GET /webhook
 router.get('/', (req, res) => {
-    res.json({
-        status: 'Webhook is active and ready!',
-        mode: 'Smart Multi-Bot Mode',
-        timestamp: new Date().toISOString()
-    });
+    console.log('[WEBHOOK] Health check hit');
+    res.send('Webhook is active and ready! (Smart Mode)');
+});
+
+// GET /webhook/test (อีกทางเลือก)
+router.get('/test', (req, res) => {
+    res.json({ status: 'ok', msg: 'Webhook router is working' });
 });
 
 /**
- * POST /webhook
- * ลิงก์หลักสำหรับบอททุกตัว
+ * POST /webhook (Universal)
  */
-router.post('/', rawParser, async (req, res) => {
-    await processWebhook(req, res);
-});
-
-/**
- * POST /webhook/:id
- * รองรับลิงก์แบบระบุไอดีด้วย (กันเหนียว)
- */
-router.post('/:id', rawParser, async (req, res) => {
-    await processWebhook(req, res);
-});
-
-async function processWebhook(req: express.Request, res: express.Response) {
-    const signature = req.headers['x-line-signature'] as string;
-    const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
-
+router.post('/', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
     try {
-        // --- 1. ตรวจสอบการ Verify จาก LINE ---
-        // ถ้าไม่มี Signature หรือไม่มี Events แสดงว่าเป็นการกดปุ่ม Verify จากหน้า Console
+        const signature = req.headers['x-line-signature'] as string;
+        const rawBody = req.body.toString('utf8');
         const parsedBody = JSON.parse(rawBody);
+
+        // 1. ตอบ Verify ทันทีถ้าไม่มีข้อมูล
         if (!signature || !parsedBody.events || parsedBody.events.length === 0) {
-            console.log('[WEBHOOK] Verify request received - Responding 200 OK');
             return res.status(200).send('OK');
         }
 
-        // --- 2. ค้นหาบอทที่เหมาะสม ---
+        // 2. ค้นหาบอทที่รองรับ
         const allBots = await prisma.lineBot.findMany({ where: { isActive: true } });
         let targetBot = null;
 
-        // เช็คว่า Signature นี้เป็นของบอทตัวไหนในฐานข้อมูล
         for (const bot of allBots) {
             if (bot.channelSecret && validateSignature(rawBody, bot.channelSecret, signature)) {
                 targetBot = bot;
@@ -62,61 +42,42 @@ async function processWebhook(req: express.Request, res: express.Response) {
             }
         }
 
-        // หากหาไม่เจอจริงๆ (อาจจะเป็นบอทตัวแรกที่ใช้ Env)
         if (!targetBot) {
-            const defaultSecret = process.env.LINE_CHANNEL_SECRET;
-            if (defaultSecret && validateSignature(rawBody, defaultSecret, signature)) {
-                targetBot = {
-                    id: 'env-default',
-                    name: 'Default Bot',
-                    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
-                };
-            }
+            // ลองใช้บอทตัวแรกเป็น Fallback
+            targetBot = allBots[0];
         }
 
-        if (!targetBot) {
-            console.error('[WEBHOOK] Unknown Bot or Invalid Signature');
-            return res.status(200).send('OK'); // ตอบ 200 เพื่อไม่ให้ LINE ส่งซ้ำขณะทดสอบ
-        }
+        if (!targetBot) return res.status(200).send('OK');
 
-        const events: WebhookEvent[] = parsedBody.events;
         const client = new Client({
             channelAccessToken: targetBot.channelAccessToken,
-            channelSecret: (targetBot as any).channelSecret || undefined
+            channelSecret: targetBot.channelSecret || undefined
         });
 
-        // --- 3. ประมวลผลแต่ละ Event ---
-        await Promise.all(events.map(event => handleEvent(event, client, targetBot!.id, targetBot!.name)));
+        // 3. จัดการ Event
+        await Promise.all(parsedBody.events.map((event: any) => handleEvent(event, client, targetBot!.id, targetBot!.name)));
 
         res.status(200).send('OK');
-    } catch (error: any) {
-        console.error('[WEBHOOK ERROR]', error.message);
+    } catch (error) {
+        console.error('[WEBHOOK ERROR]', error);
         res.status(200).send('OK');
     }
-}
+});
 
 async function handleEvent(event: WebhookEvent, client: Client, botId: string, botName: string) {
     const source = event.source;
 
-    // บันทึกข้อมูลกลุ่มอัตโนมัติ
+    // Auto sync
     if (source.type === 'group' && source.groupId) {
         try {
             const summary = await client.getGroupSummary(source.groupId);
-            // ถ้า botId เป็น 'env-default' ให้พยายามหา botId จริงจากเบส (ถ้ามี)
-            let actualBotId = botId === 'env-default' ? null : botId;
-
-            await lineGroupService.syncGroup(
-                source.groupId,
-                summary.groupName,
-                summary.pictureUrl,
-                actualBotId || undefined
-            );
+            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
         } catch (e) {
-            await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId === 'env-default' ? undefined : botId);
+            await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
         }
     }
 
-    // คำสั่งพื้นฐาน !id
+    // Command
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
         if (text === '!id' || text === '.id') {
