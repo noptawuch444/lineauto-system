@@ -7,6 +7,13 @@ import bodyParser from 'body-parser';
 const router = express.Router();
 
 /**
+ * GET WEBHOOK (For Health Checks / Pings)
+ */
+router.get('/', (req, res) => {
+    res.status(200).send('Webhook is active (GET)');
+});
+
+/**
  * SMART WEBHOOK (ROOT)
  */
 router.post('/', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
