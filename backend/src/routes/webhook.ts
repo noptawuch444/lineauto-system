@@ -7,136 +7,111 @@ import bodyParser from 'body-parser';
 const router = express.Router();
 
 /**
- * Diagnostic endpoint
+ * SMART WEBHOOK (ROOT)
+ * รองรับบอททุกตัวในลิงก์เดียว!
  */
-router.get('/', (req, res) => {
-    res.json({ status: 'Multi-Bot Webhook System is online' });
+router.post('/', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+    const signature = req.headers['x-line-signature'] as string;
+    const rawBody = req.body.toString('utf8');
+
+    try {
+        // 1. ดึงข้อมูลบอททั้งหมดที่มีในระบบมาเช็คลายเซ็น
+        const allBots = await prisma.lineBot.findMany({ where: { isActive: true } });
+        let targetBot = null;
+
+        // ค้นหาว่าลายเซ็นที่ส่งมา ตรงกับ Channel Secret ของบอทตัวไหน
+        if (signature) {
+            for (const bot of allBots) {
+                if (bot.channelSecret && validateSignature(rawBody, bot.channelSecret, signature)) {
+                    targetBot = bot;
+                    break;
+                }
+            }
+        }
+
+        // หากไม่เจอ (อาจเป็นการกด Verify หรือบอทตัวแรกที่ใช้ Env)
+        if (!targetBot) {
+            // ลองใช้บอทตัวแรกในฐานข้อมูลเป็นค่าเริ่มต้น
+            targetBot = allBots[0];
+        }
+
+        if (!targetBot) {
+            console.log('[WEBHOOK] No bots configured in database.');
+            return res.status(200).send('OK');
+        }
+
+        const parsedBody = JSON.parse(rawBody);
+        const events: WebhookEvent[] = parsedBody.events;
+
+        if (!events || events.length === 0) return res.status(200).send('OK');
+
+        const client = new Client({
+            channelAccessToken: targetBot.channelAccessToken,
+            channelSecret: targetBot.channelSecret || undefined
+        });
+
+        // ประมวลผลเหตุการณ์
+        await Promise.all(events.map(event => handleEvent(event, client, targetBot!.id, targetBot!.name)));
+
+        res.status(200).send('OK');
+    } catch (error: any) {
+        console.error('[SMART WEBHOOK ERROR]', error.message);
+        res.status(200).send('OK'); // ตอบ 200 เสมอเพื่อไม่ให้ LINE ส่งซ้ำ
+    }
 });
 
 /**
- * Multi-Bot Webhook Handler with manual body parsing for signature validation
+ * รองรับ URL แบบระบุไอดี (เพื่อความแม่นยำสูงสุดในบางกรณี)
  */
 router.post('/:id', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
     const { id } = req.params;
     const signature = req.headers['x-line-signature'] as string;
-
-    console.log(`\n--- [WEBHOOK_HIT] ID: ${id} ---`);
+    const rawBody = req.body.toString('utf8');
 
     try {
-        // 1. Find bot
         const bot = await prisma.lineBot.findUnique({ where: { id } });
-        if (!bot) {
-            console.error(`[WEBHOOK] Bot not found in database: ${id}`);
-            return res.status(404).send('Bot not found');
-        }
+        if (!bot) return res.status(200).send('OK');
 
-        // 2. Validate Signature
-        const rawBody = req.body.toString('utf8');
-        if (bot.channelSecret && signature) {
-            const isValid = validateSignature(rawBody, bot.channelSecret, signature);
-            if (!isValid) {
-                console.error(`[SIG FAIL] Bot: ${bot.name} (${id}) - Signature validation failed!`);
-                // Even on fail, LINE Verify might need a 200, but let's be strict for now.
-                // return res.status(401).send('Invalid signature');
-            } else {
-                console.log(`[SIG OK] Bot: ${bot.name}`);
-            }
-        } else {
-            console.log(`[SIG SKIP] Bot: ${bot.name} - No secret or signature provided`);
-        }
-
-        // 3. Parse Body
-        let parsedBody;
-        try {
-            parsedBody = JSON.parse(rawBody);
-        } catch (e) {
-            console.error('[WEBHOOK] JSON Parse Error:', e);
-            return res.status(400).send('Invalid JSON');
-        }
-
+        const parsedBody = JSON.parse(rawBody);
         const events: WebhookEvent[] = parsedBody.events;
-        if (!events || events.length === 0) {
-            console.log('[WEBHOOK] No events found (Verification request)');
-            return res.status(200).send('OK');
-        }
-
-        console.log(`[WEBHOOK] Received ${events.length} events for ${bot.name}`);
+        if (!events || events.length === 0) return res.status(200).send('OK');
 
         const client = new Client({
             channelAccessToken: bot.channelAccessToken,
             channelSecret: bot.channelSecret || undefined
         });
 
-        // 4. Process
         await Promise.all(events.map(event => handleEvent(event, client, bot.id, bot.name)));
-
         res.status(200).send('OK');
-    } catch (error: any) {
-        console.error(`[WEBHOOK CRASH] ${id}:`, error);
-        res.status(200).send('OK'); // Always send 200 to LINE to avoid endless retries during debug
+    } catch (error) {
+        res.status(200).send('OK');
     }
 });
 
 async function handleEvent(event: WebhookEvent, client: Client, botId: string, botName: string) {
-    console.log(`[EVENT] ${event.type} from ${event.source.type} (Bot: ${botName})`);
-
-    // 1. Commands & Registration
-    if (event.type === 'message' && event.message.type === 'text') {
-        const text = event.message.text.trim().toLowerCase();
-        const triggers = ['!id', '.id', '!reg', '!sync'];
-
-        if (triggers.includes(text)) {
-            const source = event.source;
-            let targetId = '';
-            let targetType = '';
-
-            if (source.type === 'group') { targetId = source.groupId; targetType = 'Group ID'; }
-            else if (source.type === 'room') { targetId = source.roomId; targetType = 'Room ID'; }
-            else if (source.type === 'user') { targetId = source.userId; targetType = 'User ID'; }
-
-            if (targetId) {
-                console.log(`[CMD] Syncing ${targetType}: ${targetId} for Bot: ${botName}`);
-
-                try {
-                    // Try to fetch newest info to sync
-                    let name = 'Unknown Group';
-                    let pic = undefined;
-
-                    if (source.type === 'group') {
-                        try {
-                            const summary = await client.getGroupSummary(source.groupId);
-                            name = summary.groupName;
-                            pic = summary.pictureUrl;
-                        } catch (e) {
-                            console.warn(`[SYNC] Could not get group summary for ${source.groupId}`);
-                        }
-                    }
-
-                    await lineGroupService.syncGroup(targetId, name, pic, botId);
-
-                    await client.replyMessage(event.replyToken, {
-                        type: 'text',
-                        text: `✅ [${botName}]\nลงทะเบียนห้องสำเร็จ!\n${targetType}: ${targetId}`
-                    });
-                } catch (err) {
-                    console.error('[CMD FAIL] Error syncing/replying:', err);
-                }
-            }
+    // Sync ข้อมูลอัตโนมัติเมื่อพบบทสนทนาในกลุ่ม
+    const source = event.source;
+    if (source.type === 'group' && source.groupId) {
+        try {
+            // พยายามดึงชื่อกลุ่มล่าสุด
+            const summary = await client.getGroupSummary(source.groupId);
+            await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
+            console.log(`[AUTO-SYNC] Bot: ${botName} synced Group: ${summary.groupName}`);
+        } catch (e) {
+            // ถ้าดึง Summary ไม่ได้ (กรณีบอทไม่มีสิทธิ์) ให้เก็บแค่ ID ไว้ก่อน
+            await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
         }
     }
 
-    // 2. Auto-Sync on Join
-    if (event.type === 'join' || (event.type === 'message' && event.source.type === 'group')) {
-        const source = (event as any).source;
-        if (source.type === 'group' && source.groupId) {
-            try {
-                // Periodically sync group info even on regular messages if it's a group
-                const summary = await client.getGroupSummary(source.groupId);
-                await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
-            } catch (err) {
-                // If summary fails (maybe not permitted), at least sync with ID
-                await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
-            }
+    // รองรับคำสั่งเช็คไอดีพื้นฐาน
+    if (event.type === 'message' && event.message.type === 'text') {
+        const text = event.message.text.trim().toLowerCase();
+        if (text === '!id' || text === '.id') {
+            let id = (source as any).groupId || (source as any).roomId || source.userId;
+            await client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: `✅ [${botName}]\nID: ${id}`
+            });
         }
     }
 }
