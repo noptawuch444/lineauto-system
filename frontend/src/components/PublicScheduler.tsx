@@ -304,31 +304,45 @@ export default function PublicScheduler() {
                             <div className="g-fg">
                                 <label>รูปภาพ <span className="g-counter">({files.length}/3)</span></label>
                                 <div className="g-img-area">
-                                    {previews.length > 0 && (
-                                        <div className="g-gallery">
-                                            {previews.map((url, i) => (
-                                                <div key={i} className="g-gallery-item">
-                                                    <img src={url} alt="" />
-                                                    <div className="g-gallery-overlay">
-                                                        <span className="g-gallery-name">{files[i]?.name?.slice(0, 20) || `รูป ${i + 1}`}</span>
-                                                        <span className="g-gallery-size">{files[i] ? fmtSize(files[i].size) : ''}</span>
-                                                    </div>
-                                                    <button type="button" className="g-gallery-del" onClick={() => removeFile(i)}><XCircle size={14} /></button>
-                                                    <div className="g-gallery-num">{i + 1}</div>
+                                    <div className="g-gallery">
+                                        {previews.map((url, i) => (
+                                            <div key={i} className="g-gallery-item">
+                                                <img src={url} alt="" />
+                                                <div className="g-gallery-overlay">
+                                                    <span className="g-gallery-name">{files[i]?.name?.slice(0, 20) || `รูป ${i + 1}`}</span>
+                                                    <span className="g-gallery-size">{files[i] ? fmtSize(files[i].size) : ''}</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {files.length < 3 && (
+                                                <button type="button" className="g-gallery-del" onClick={() => removeFile(i)}><XCircle size={14} /></button>
+                                                <div className="g-gallery-num">{i + 1}</div>
+                                            </div>
+                                        ))}
+                                        {files.length > 0 && files.length < 3 && (
+                                            <div
+                                                className={`g-dropzone mini ${dragOver ? 'over' : ''}`}
+                                                onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
+                                                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                                                onDragLeave={() => setDragOver(false)}
+                                                onClick={() => fileRef.current?.click()}
+                                                style={{ gridColumn: files.length === 1 ? 'span 2' : 'span 1' }}
+                                            >
+                                                <div className="g-drop-content">
+                                                    <div className="g-drop-icon"><ImageIcon size={20} /></div>
+                                                    <div className="g-drop-text">เพิ่มรูป ({3 - files.length})</div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {files.length === 0 && (
                                         <div className={`g-dropzone ${dragOver ? 'over' : ''}`} onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }} onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onClick={() => fileRef.current?.click()}>
                                             <input ref={fileRef} type="file" multiple accept="image/*" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} hidden />
                                             <div className="g-drop-content">
                                                 <div className="g-drop-icon"><ImageIcon size={32} /></div>
                                                 <div className="g-drop-text">ลากไฟล์มาวาง หรือ <b>คลิกเลือก</b></div>
-                                                <div className="g-drop-sub">รองรับ JPG, PNG (เหลือ {3 - files.length} รูป)</div>
+                                                <div className="g-drop-sub">รองรับ JPG, PNG (สูงสุด 3 รูป)</div>
                                             </div>
                                         </div>
                                     )}
+                                    {files.length > 0 && <input ref={fileRef} type="file" multiple accept="image/*" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} hidden />}
                                 </div>
                             </div>
                             {files.length > 0 && (
