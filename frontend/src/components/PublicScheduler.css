@@ -71,8 +71,7 @@
     width: 100vw;
     height: 100vh;
     pointer-events: none;
-    /* Fixed Background Container - Behind UI elements */
-    z-index: 5;
+    z-index: -1;
     overflow-x: hidden;
 }
 
@@ -864,35 +863,26 @@
 .g-btn-save {
     flex: 2;
     padding: 11px 4px;
-    /* Reduced side padding slightly */
     border-radius: 8px;
     font-size: 16px;
-    /* Slightly smaller to fit text */
     font-weight: 700;
-    border: none;
+    border: 1px solid rgba(201, 168, 76, 0.3);
     cursor: pointer;
     font-family: 'Prompt', sans-serif;
     transition: all .2s;
-    background: linear-gradient(135deg, #d4af37 0%, #c9a84c 30%, #b8962e 60%, #a88728 100%);
+    background: #c9a84c;
     color: #1a1200;
-    box-shadow:
-        0 4px 16px rgba(201, 168, 76, .3),
-        inset 0 1px 0 rgba(255, 255, 255, .2),
-        inset 0 -1px 0 rgba(0, 0, 0, .15);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, .15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     letter-spacing: .1px;
     overflow: hidden;
-    /* Prevent overflow */
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
 .g-btn-save:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow:
-        0 8px 28px rgba(201, 168, 76, .4),
-        inset 0 1px 0 rgba(255, 255, 255, .25);
-    filter: brightness(1.1);
+    background: #d4af37;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .g-btn-save:active:not(:disabled) {
