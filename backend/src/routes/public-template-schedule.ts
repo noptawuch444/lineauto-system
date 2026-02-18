@@ -95,4 +95,19 @@ router.post('/schedule/:publicCode', async (req, res) => {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+// DELETE schedule
+router.delete('/schedule/:publicCode/:id', async (req, res) => {
+    try {
+        const { publicCode, id } = req.params;
+        const msg = await prisma.scheduledMessage.findUnique({ where: { id } });
+
+        if (!msg) return res.status(404).json({ error: 'Message not found' });
+        if (msg.userIdentifier !== `template-${publicCode}`) return res.status(403).json({ error: 'Unauthorized' });
+        if (msg.status !== 'pending') return res.status(400).json({ error: 'Cannot delete sent or processing messages' });
+
+        await prisma.scheduledMessage.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 export default router;

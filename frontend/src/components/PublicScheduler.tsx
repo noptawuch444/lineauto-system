@@ -4,14 +4,13 @@ import { format } from 'date-fns';
 import axios from 'axios';
 import {
     FileText, PencilLine, Image as ImageIcon, Clock, Save, Trash2,
-    ClipboardList, RefreshCw, Inbox, Calendar, Hourglass, Send,
-    CheckCircle2, XCircle, Ban, Camera, ChevronUp, ChevronDown,
-    FileEdit, AlertTriangle, Loader2, Headset
+    ClipboardList, Inbox, Calendar, Hourglass, Send,
+    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, History, Eye, User
 } from 'lucide-react';
 import './PublicScheduler.css';
 
 const API = import.meta.env.VITE_API_URL || '/api';
-const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id'; // ปรับเปลี่ยนลิงก์ติดต่อตรงนี้
+const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
 
 interface Template { id: string; name: string; description?: string; }
 interface Message { id: string; content: string; imageUrl?: string | null; imageUrls?: string[]; scheduledTime: string; status: string; createdAt: string; logs?: any[]; }
@@ -32,14 +31,16 @@ export default function PublicScheduler() {
     const [imageFirst, setImageFirst] = useState(false);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
+    const [userHistory, setUserHistory] = useState<string[]>([]);
+
     const fileRef = useRef<HTMLInputElement>(null);
     const timeRef = useRef<HTMLInputElement>(null);
-
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         loadTemplate(true);
         loadMessages();
+        loadHistory();
         const iv = setInterval(() => {
             loadTemplate(false);
             loadMessages();
@@ -47,28 +48,41 @@ export default function PublicScheduler() {
         return () => clearInterval(iv);
     }, [publicCode]);
 
-    // Snowfall Effect - Runs when loading finishes to catch the canvas ref
+    const loadHistory = () => {
+        const saved = localStorage.getItem(`history-${publicCode}`);
+        if (saved) {
+            try {
+                setUserHistory(JSON.parse(saved));
+            } catch (e) {
+                setUserHistory([]);
+            }
+        }
+    };
+
+    const addHistory = (id: string) => {
+        const newHistory = [id, ...userHistory.slice(0, 19)];
+        setUserHistory(newHistory);
+        localStorage.setItem(`history-${publicCode}`, JSON.stringify(newHistory));
+    };
+
+    const removeHistory = (id: string) => {
+        const newHistory = userHistory.filter(h => h !== id);
+        setUserHistory(newHistory);
+        localStorage.setItem(`history-${publicCode}`, JSON.stringify(newHistory));
+    };
+
+    // Snowfall Effect
     useEffect(() => {
         if (loading || error) return;
-
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
-
-        const flakeCount = 100; // Reduced count
+        const flakeCount = 100;
         const flakes: { x: number; y: number; r: number; d: number; s: number; color: string }[] = [];
-
-        const goldShades = [
-            'rgba(243, 207, 138, 0.8)', // Light Gold
-            'rgba(201, 168, 76, 0.9)',  // Deep Gold
-            'rgba(255, 235, 180, 0.7)', // Brighter Gold
-            'rgba(180, 140, 50, 0.9)'   // Darker Gold
-        ];
-
+        const goldShades = ['rgba(243, 207, 138, 0.8)', 'rgba(201, 168, 76, 0.9)', 'rgba(255, 235, 180, 0.7)', 'rgba(180, 140, 50, 0.9)'];
         for (let i = 0; i < flakeCount; i++) {
             flakes.push({
                 x: Math.random() * width,
@@ -79,7 +93,6 @@ export default function PublicScheduler() {
                 color: goldShades[Math.floor(Math.random() * goldShades.length)]
             });
         }
-
         let animId: number;
         let angle = 0;
         const moveFlakes = () => {
@@ -88,19 +101,14 @@ export default function PublicScheduler() {
                 const f = flakes[i];
                 f.y += f.s;
                 f.x += Math.sin(angle + f.d) * 0.5;
-
-                if (f.y > height) {
-                    flakes[i] = { x: Math.random() * width, y: -10, r: f.r, d: f.d, s: f.s, color: f.color };
-                }
+                if (f.y > height) { flakes[i] = { x: Math.random() * width, y: -10, r: f.r, d: f.d, s: f.s, color: f.color }; }
                 if (f.x > width + 5) flakes[i].x = -5;
                 if (f.x < -5) flakes[i].x = width + 5;
             }
         };
-
         const drawFlakes = () => {
             if (!ctx) return;
             ctx.clearRect(0, 0, width, height);
-
             for (let i = 0; i < flakeCount; i++) {
                 const f = flakes[i];
                 ctx.beginPath();
@@ -111,14 +119,11 @@ export default function PublicScheduler() {
             moveFlakes();
             animId = requestAnimationFrame(drawFlakes);
         };
-
         drawFlakes();
-
         const handleResize = () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         };
-
         window.addEventListener('resize', handleResize);
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -131,7 +136,7 @@ export default function PublicScheduler() {
             if (init) setLoading(true);
             const r = await axios.get(`${API}/public-template/template/${publicCode}`);
             setTemplate(r.data);
-            if (error) setError(''); // Clear error if it's back online
+            if (error) setError('');
         }
         catch (e: any) {
             setError(e.response?.data?.error || 'ไม่พบเทมเพลตนี้');
@@ -180,15 +185,28 @@ export default function PublicScheduler() {
                 const r = await axios.post(`${API}/public-template/upload`, fd);
                 if (r.data.url) urls.push(r.data.url);
             }
-            await axios.post(`${API}/public-template/schedule/${publicCode}`, {
+            const res = await axios.post(`${API}/public-template/schedule/${publicCode}`, {
                 content: text, imageUrl: urls[0] || null, imageUrls: urls,
                 scheduledTime: new Date(scheduledTime).toISOString(),
                 imageFirst: imageFirst
             });
+            if (res.data.id) addHistory(res.data.id);
             clearForm(); loadMessages();
             showToast('ตั้งเวลาส่งข้อความเรียบร้อยแล้ว!', 'ok');
         } catch (e: any) { showToast(e.message || 'เกิดข้อผิดพลาด', 'err'); }
         finally { setSending(false); }
+    };
+
+    const deleteMessage = async (id: string) => {
+        if (!window.confirm('ยืนยันหน้าการยกเลิกรายการนี้?')) return;
+        try {
+            await axios.delete(`${API}/public-template/schedule/${publicCode}/${id}`);
+            showToast('ยกเลิกรายการเรียบร้อยแล้ว', 'ok');
+            loadMessages();
+            removeHistory(id);
+        } catch (e: any) {
+            showToast(e.response?.data?.error || 'ไม่สามารถยกเลิกได้', 'err');
+        }
     };
 
     const minDT = () => {
@@ -199,12 +217,8 @@ export default function PublicScheduler() {
 
     const showTimePicker = () => {
         if (timeRef.current) {
-            // Use showPicker if available (Chrome 99+), otherwise fallback to click
-            if ('showPicker' in HTMLInputElement.prototype) {
-                timeRef.current.showPicker();
-            } else {
-                timeRef.current.click();
-            }
+            if ('showPicker' in HTMLInputElement.prototype) { timeRef.current.showPicker(); }
+            else { timeRef.current.click(); }
         }
     };
 
@@ -219,17 +233,14 @@ export default function PublicScheduler() {
     const fmtTime = (s: string) => { try { return format(new Date(s), 'dd/MM/yyyy HH:mm'); } catch { return s; } };
     const fmtSize = (b: number) => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
 
-    // Memoized grouping logic
     const groups = useMemo(() => {
         const gm: Record<string, Message[]> = {};
         messages.forEach(m => {
             const d = new Date(m.scheduledTime), now = new Date(), tmr = new Date(now);
             tmr.setDate(tmr.getDate() + 1);
-
             let label = format(d, 'd MMM yyyy');
             if (d.toDateString() === now.toDateString()) label = `วันนี้ (${format(d, 'd MMM')})`;
             else if (d.toDateString() === tmr.toDateString()) label = `พรุ่งนี้ (${format(d, 'd MMM')})`;
-
             (gm[label] ??= []).push(m);
         });
         return Object.entries(gm) as [string, Message[]][];
@@ -238,12 +249,44 @@ export default function PublicScheduler() {
     const getImages = (m: Message): string[] => m.imageUrls?.length ? m.imageUrls : m.imageUrl ? [m.imageUrl] : [];
 
     const toggleDay = (label: string) => {
-        setCollapsedDays(prev =>
-            prev.includes(label) ? prev.filter(d => d !== label) : [...prev, label]
-        );
+        setCollapsedDays(prev => prev.includes(label) ? prev.filter(d => d !== label) : [...prev, label]);
     };
 
-    // ──── RENDER ────
+    // Live Preview Component
+    const PreviewBox = () => (
+        <div className="g-preview-wrap">
+            <div className="g-preview-label"><Eye size={14} /> ตัวอย่างการแสดงผลใน LINE</div>
+            <div className="line-chat">
+                <div className="line-msg-row">
+                    <div className="line-avatar">
+                        <img src="/logo.jpg" alt="" />
+                    </div>
+                    <div className="line-content">
+                        <div className="line-bot-name">{template?.name || 'AutoBot'}</div>
+                        <div className="line-bubbles">
+                            {imageFirst ? (
+                                <>
+                                    {previews.map((url, i) => (
+                                        <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                    ))}
+                                    {text && <div className="line-bubble-text">{text}</div>}
+                                </>
+                            ) : (
+                                <>
+                                    {text && <div className="line-bubble-text">{text}</div>}
+                                    {previews.map((url, i) => (
+                                        <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                    ))}
+                                </>
+                            )}
+                            {!text && !previews.length && <div className="line-bubble-empty">กำลังพิมพ์...</div>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     if (loading) return <div className="g"><div className="g-center"><Loader2 className="g-spin-icon" /></div></div>;
     if (error) {
         const isInactive = error === 'Template is not active';
@@ -253,9 +296,7 @@ export default function PublicScheduler() {
                     <div className="g-error-icon"><AlertTriangle size={48} /></div>
                     <h2>{isInactive ? 'บอทไลน์นี้ถูกปิดใช้งาน' : 'ไม่พบเทมเพลต'}</h2>
                     <p style={{ color: '#a89060', maxWidth: '400px', lineHeight: '1.6' }}>
-                        {isInactive
-                            ? `ขออภัย บอทไลน์ "${template?.name || 'นี้'}" ไม่สามารถใช้งานได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ`
-                            : error}
+                        {isInactive ? `ขออภัย บอทไลน์ "${template?.name || 'นี้'}" ไม่สามารถใช้งานได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ` : error}
                     </p>
                 </div>
             </div>
@@ -264,11 +305,7 @@ export default function PublicScheduler() {
 
     return (
         <div className="g">
-            {/* Animated Background Layers */}
-            <div className="g-bg-anim">
-                <canvas ref={canvasRef} className="g-canvas-bg" />
-            </div>
-
+            <div className="g-bg-anim"><canvas ref={canvasRef} className="g-canvas-bg" /></div>
             {toast && (
                 <div className={`g-toast ${toast.type}`}>
                     {toast.type === 'ok' && <CheckCircle2 size={18} />}
@@ -277,13 +314,9 @@ export default function PublicScheduler() {
                     <span>{toast.msg}</span>
                 </div>
             )}
-
-            {/* ═══ TOPBAR ═══ */}
             <header className="g-nav">
                 <div className="g-nav-l">
-                    <div className="g-logo-wrap">
-                        <img src="/logo.jpg" alt="GoldSync" />
-                    </div>
+                    <div className="g-logo-wrap"><img src="/logo.jpg" alt="GoldSync" /></div>
                     <div>
                         <div className="g-brand">GoldSync AutoBot <span>AUTOBOT</span></div>
                         <div className="g-tpl"><FileText size={14} className="g-icon-inline" /> เทมเพลต: <b>{template?.name || '—'}</b></div>
@@ -294,171 +327,117 @@ export default function PublicScheduler() {
                         <small>สถานะระบบ</small>
                         <span><div className="g-dot" /> พร้อมใช้งาน</span>
                     </div>
-                    <button className="g-dl-btn" onClick={() => window.open(CONTACT_LINK, '_blank')}>
-                        <Headset size={16} className="g-icon-inline" /> ติดต่อแอดมิน
-                    </button>
+                    <button className="g-dl-btn" onClick={() => window.open(CONTACT_LINK, '_blank')}><Headset size={16} className="g-icon-inline" /> ติดต่อแอดมิน</button>
                 </div>
             </header>
 
-            {/* ═══ BODY ═══ */}
             <main className="g-body">
-                {/* LEFT: COMPOSE */}
                 <section className="g-panel">
-                    <div className="g-panel-head">
-                        <div className="g-panel-title">
-                            <PencilLine size={18} />
-                            <span>สร้างรายการใหม่</span>
-                        </div>
-                    </div>
-                    <form onSubmit={submit} className="g-form">
-                        <div className="g-fg g-fg-grow">
-                            <label>ข้อความ <span className="g-counter">({text.length} ตัวอักษร)</span></label>
-                            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="พิมพ์ข้อความที่ต้องการส่ง..." className="g-ta" />
-                        </div>
-
-                        {/* ═══ PREMIUM IMAGE UPLOAD ═══ */}
-                        <div className="g-fg">
-                            <label>
-                                รูปภาพ <span className="g-counter">({files.length}/3)</span>
-                            </label>
-
-                            {/* Drop area + Gallery */}
-                            <div className="g-img-area">
-                                {/* Gallery Grid */}
-                                {previews.length > 0 && (
-                                    <div className="g-gallery">
-                                        {previews.map((url, i) => (
-                                            <div key={i} className="g-gallery-item">
-                                                <img src={url} alt="" />
-                                                <div className="g-gallery-overlay">
-                                                    <span className="g-gallery-name">{files[i]?.name?.slice(0, 20) || `รูป ${i + 1}`}</span>
-                                                    <span className="g-gallery-size">{files[i] ? fmtSize(files[i].size) : ''}</span>
-                                                </div>
-                                                <button type="button" className="g-gallery-del" onClick={() => removeFile(i)}><XCircle size={14} /></button>
-                                                <div className="g-gallery-num">{i + 1}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Drop Zone */}
-                                {files.length < 3 && (
-                                    <div
-                                        className={`g-dropzone ${dragOver ? 'over' : ''}`}
-                                        onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
-                                        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                                        onDragLeave={() => setDragOver(false)}
-                                        onClick={() => fileRef.current?.click()}
-                                    >
-                                        <input ref={fileRef} type="file" multiple accept="image/*" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} hidden />
-                                        <div className="g-drop-content">
-                                            <div className="g-drop-icon"><ImageIcon size={32} /></div>
-                                            <div className="g-drop-text">
-                                                ลากไฟล์มาวาง หรือ <b>คลิกเลือก</b>
-                                            </div>
-                                            <div className="g-drop-sub">รองรับ JPG, PNG (เหลือ {3 - files.length} รูป)</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Order Preference */}
-                        {files.length > 0 && (
+                    <div className="g-panel-head"><div className="g-panel-title"><PencilLine size={18} /><span>สร้างรายการใหม่</span></div></div>
+                    <div className="g-scroll-box">
+                        <form onSubmit={submit} className="g-form">
                             <div className="g-fg">
-                                <label><ImageIcon size={14} /> เลือกรูปแบบการลำดับข้อความ</label>
-                                <div className="g-order-selector">
-                                    <button
-                                        type="button"
-                                        className={`g-order-option ${!imageFirst ? 'active' : ''}`}
-                                        onClick={() => setImageFirst(false)}
-                                    >
-                                        <div className="g-order-preview">
-                                            <div className="g-p-txt">ข้อความ</div>
-                                            <div className="g-p-arr">➔</div>
-                                            <div className="g-p-img">รูปภาพ</div>
+                                <label>ข้อความ <span className="g-counter">({text.length} ตัวอักษร)</span></label>
+                                <textarea value={text} onChange={e => setText(e.target.value)} placeholder="พิมพ์ข้อความที่ต้องการส่ง..." className="g-ta" />
+                            </div>
+                            <div className="g-fg">
+                                <label>รูปภาพ <span className="g-counter">({files.length}/3)</span></label>
+                                <div className="g-img-area">
+                                    {previews.length > 0 && (
+                                        <div className="g-gallery">
+                                            {previews.map((url, i) => (
+                                                <div key={i} className="g-gallery-item">
+                                                    <img src={url} alt="" />
+                                                    <div className="g-gallery-overlay">
+                                                        <span className="g-gallery-name">{files[i]?.name?.slice(0, 20) || `รูป ${i + 1}`}</span>
+                                                        <span className="g-gallery-size">{files[i] ? fmtSize(files[i].size) : ''}</span>
+                                                    </div>
+                                                    <button type="button" className="g-gallery-del" onClick={() => removeFile(i)}><XCircle size={14} /></button>
+                                                    <div className="g-gallery-num">{i + 1}</div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <span>ส่งข้อความก่อนรูป</span>
-                                    </button>
+                                    )}
+                                    {files.length < 3 && (
+                                        <div className={`g-dropzone ${dragOver ? 'over' : ''}`} onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }} onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onClick={() => fileRef.current?.click()}>
+                                            <input ref={fileRef} type="file" multiple accept="image/*" onChange={e => e.target.files && addFiles(Array.from(e.target.files))} hidden />
+                                            <div className="g-drop-content">
+                                                <div className="g-drop-icon"><ImageIcon size={32} /></div>
+                                                <div className="g-drop-text">ลากไฟล์มาวาง หรือ <b>คลิกเลือก</b></div>
+                                                <div className="g-drop-sub">รองรับ JPG, PNG (เหลือ {3 - files.length} รูป)</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {files.length > 0 && (
+                                <div className="g-fg">
+                                    <label><ImageIcon size={14} /> ลำดับการส่ง</label>
+                                    <div className="g-order-selector">
+                                        <button type="button" className={`g-order-option ${!imageFirst ? 'active' : ''}`} onClick={() => setImageFirst(false)}>ส่งข้อความก่อน</button>
+                                        <button type="button" className={`g-order-option ${imageFirst ? 'active' : ''}`} onClick={() => setImageFirst(true)}>ส่งรูปภาพก่อน</button>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="g-fg">
+                                <label><Clock size={16} /> เวลาส่ง</label>
+                                <div className="g-custom-time" onClick={showTimePicker}>
+                                    <input ref={timeRef} type="datetime-local" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} min={minDT()} className="g-native-picker" />
+                                    <div className="g-time-display">
+                                        {scheduledTime ? (
+                                            <div className="g-time-val">
+                                                <span className="g-t-date">{format(new Date(scheduledTime), 'dd/MM/yyyy')}</span>
+                                                <span className="g-t-sep">—</span>
+                                                <span className="g-t-hour">{format(new Date(scheduledTime), 'HH:mm')} น.</span>
+                                            </div>
+                                        ) : <div className="g-time-placeholder">เลือกเวลา -- : --</div>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="g-actions">
+                                <button type="submit" disabled={sending} className="g-btn-save">
+                                    {sending ? <><Loader2 size={18} className="g-spin" /> บันทึก...</> : <><Save size={18} /> บันทึก</>}
+                                </button>
+                                <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /> เคลียร์</button>
+                            </div>
+                        </form>
+                        <PreviewBox />
+                    </div>
+                </section>
 
-                                    <button
-                                        type="button"
-                                        className={`g-order-option ${imageFirst ? 'active' : ''}`}
-                                        onClick={() => setImageFirst(true)}
-                                    >
-                                        <div className="g-order-preview">
-                                            <div className="g-p-img">รูปภาพ</div>
-                                            <div className="g-p-arr">➔</div>
-                                            <div className="g-p-txt">ข้อความ</div>
+                <section className="g-panel">
+                    <div className="g-panel-head"><div className="g-panel-title"><ClipboardList size={18} /><span>รายการทั้งหมด ({messages.length})</span></div></div>
+                    <div className="g-list">
+                        {/* ═══ RECENT USER HISTORY ═══ */}
+                        {userHistory.length > 0 && (
+                            <div className="g-history-sec">
+                                <div className="g-history-head"><History size={14} /> รายการที่คุณเพิ่งสร้าง (แจ้งเตือน/ยกเลิกได้)</div>
+                                <div className="g-history-list">
+                                    {messages.filter(m => userHistory.includes(m.id)).map(m => (
+                                        <div key={`h-${m.id}`} className="g-h-item">
+                                            <div className="g-h-info">
+                                                <div className="g-h-time">{fmtTime(m.scheduledTime)}</div>
+                                                <div className="g-h-txt">{m.content.slice(0, 40)}{m.content.length > 40 ? '...' : ''}</div>
+                                            </div>
+                                            {m.status === 'pending' && (
+                                                <button className="g-h-del" onClick={() => deleteMessage(m.id)}><Trash2 size={14} /> ยกเลิก</button>
+                                            )}
                                         </div>
-                                        <span>ส่งรูปภาพก่อนข้อความ</span>
-                                    </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
-                        <div className="g-fg">
-                            <label><Clock size={16} /> เวลาส่ง (วัน/เดือน/ปี 24ชม.)</label>
-                            <div className="g-custom-time" onClick={showTimePicker}>
-                                <input
-                                    ref={timeRef}
-                                    type="datetime-local"
-                                    value={scheduledTime}
-                                    onChange={e => setScheduledTime(e.target.value)}
-                                    min={minDT()}
-                                    className="g-native-picker"
-                                />
-                                <div className="g-time-display">
-                                    {scheduledTime ? (
-                                        <div className="g-time-val">
-                                            <span className="g-t-date">{format(new Date(scheduledTime), 'dd/MM/yyyy')}</span>
-                                            <span className="g-t-sep">—</span>
-                                            <span className="g-t-hour">{format(new Date(scheduledTime), 'HH:mm')} น.</span>
-                                        </div>
-                                    ) : (
-                                        <div className="g-time-placeholder">วัน/เดือน/ปี  -- : --</div>
-                                    )}
-                                    <div className="g-time-edit-hint">คลิกเพื่อเลือกเวลา</div>
-                                </div>
-                            </div>
-                        </div>
+                        <div className="g-divider"><User size={14} /> รายการรวมของเทมเพลตนี้</div>
 
-                        <div className="g-actions">
-                            <button type="submit" disabled={sending} className="g-btn-save">
-                                {sending ? <><Loader2 size={18} className="g-spin" /> กำลังบันทึก...</> : <><Save size={18} /> บันทึก</>}
-                            </button>
-                            <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear">
-                                <Trash2 size={16} /> เคลียร์
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                {/* RIGHT: HISTORY */}
-                <section className="g-panel">
-                    <div className="g-panel-head">
-                        <div className="g-panel-title">
-                            <ClipboardList size={18} />
-                            <span>รายการส่งข้อความ ({messages.length})</span>
-                        </div>
-                        <button className="g-btn-ref" onClick={() => loadMessages()}><RefreshCw size={14} /> รีเฟรช</button>
-                    </div>
-                    <div className="g-list">
                         {messages.length === 0 ? (
-                            <div className="g-empty">
-                                <div className="g-empty-icon"><Inbox size={48} /></div>
-                                <p>ยังไม่มีข้อความ</p>
-                                <small>สร้างข้อความใหม่ได้ทางซ้าย</small>
-                            </div>
+                            <div className="g-empty"><div className="g-empty-icon"><Inbox size={48} /></div><p>ยังไม่มีข้อความ</p></div>
                         ) : groups.map(([label, msgs]) => {
                             const isCollapsed = collapsedDays.includes(label);
                             return (
                                 <div key={label} className={`g-dg ${isCollapsed ? 'collapsed' : ''}`}>
-                                    <div className="g-dg-bar" onClick={() => toggleDay(label)} style={{ cursor: 'pointer' }}>
-                                        <div className="g-dg-label">
-                                            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                                            <Calendar size={14} /> {label}
-                                        </div>
+                                    <div className="g-dg-bar" onClick={() => toggleDay(label)}>
+                                        <div className="g-dg-label"><Calendar size={14} /> {label}</div>
                                         <span className="g-dg-n">{msgs.length} รายการ</span>
                                     </div>
                                     {!isCollapsed && msgs.map(m => {
@@ -470,37 +449,19 @@ export default function PublicScheduler() {
                                                 <div className="g-msg-r1">
                                                     <span className={`g-st ${st.cls}`}>{st.icon} {st.label}</span>
                                                     <span className="g-msg-time"><Clock size={12} /> {fmtTime(m.scheduledTime)}</span>
-                                                    <div className="g-msg-meta">
-                                                        {imgs.length > 0 && <span className="g-meta-t"><Camera size={12} /> {imgs.length}</span>}
-                                                        <span className="g-chev">{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
-                                                    </div>
+                                                    {userHistory.includes(m.id) && <span className="g-mine-badge">ของคุณ</span>}
                                                 </div>
                                                 <div className="g-msg-text">{m.content}</div>
                                                 {open && (
                                                     <div className="g-msg-detail" onClick={e => e.stopPropagation()}>
-                                                        <div className="g-det-sec">
-                                                            <div className="g-det-label"><FileEdit size={14} /> ข้อความเต็ม</div>
-                                                            <div className="g-det-text">{m.content}</div>
-                                                        </div>
+                                                        <div className="g-det-text">{m.content}</div>
                                                         {imgs.length > 0 && (
-                                                            <div className="g-det-sec">
-                                                                <div className="g-det-label"><ImageIcon size={14} /> รูปภาพ ({imgs.length})</div>
-                                                                <div className="g-det-imgs">
-                                                                    {imgs.map((url, i) => (
-                                                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="g-det-img">
-                                                                            <img src={url} alt="" />
-                                                                        </a>
-                                                                    ))}
-                                                                </div>
+                                                            <div className="g-det-imgs">
+                                                                {imgs.map((url, i) => <img key={i} src={url} alt="" className="g-det-img-small" />)}
                                                             </div>
                                                         )}
-                                                        {m.status === 'failed' && m.logs?.length && (
-                                                            <div className="g-det-sec">
-                                                                <div className="g-det-label g-det-err"><AlertTriangle size={14} /> Error</div>
-                                                                <div className="g-det-log">
-                                                                    {m.logs.map((l, i) => <div key={i}>{typeof l === 'string' ? l : JSON.stringify(l)}</div>)}
-                                                                </div>
-                                                            </div>
+                                                        {userHistory.includes(m.id) && m.status === 'pending' && (
+                                                            <button className="g-btn-cancel-big" onClick={() => deleteMessage(m.id)}><Trash2 size={16} /> ยกเลิกรายการนี้</button>
                                                         )}
                                                     </div>
                                                 )}
@@ -513,8 +474,6 @@ export default function PublicScheduler() {
                     </div>
                 </section>
             </main>
-
-            {/* Corner decoration */}
             <div className="g-corner-deco" />
         </div>
     );
