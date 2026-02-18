@@ -149,11 +149,69 @@ export default function PublicScheduler() {
         }
     };
 
-    const addFiles = (incoming: File[]) => {
+    const [processing, setProcessing] = useState(false);
+
+    const compressImage = (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 1200;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file);
+                        }
+                    }, 'image/jpeg', 0.7);
+                };
+            };
+        });
+    };
+
+    const addFiles = async (incoming: File[]) => {
         const slots = 3 - files.length; if (slots <= 0) return;
         const valid = incoming.slice(0, slots).filter(f => f.type.startsWith('image/')); if (!valid.length) return;
-        setFiles(p => [...p, ...valid]);
-        setPreviews(p => [...p, ...valid.map(f => URL.createObjectURL(f))]);
+        setProcessing(true);
+        try {
+            const compressed = await Promise.all(valid.map(f => compressImage(f)));
+            setFiles(p => [...p, ...compressed]);
+            setPreviews(p => [...p, ...compressed.map(f => URL.createObjectURL(f))]);
+        } catch (e) {
+            console.error(e);
+            setFiles(p => [...p, ...valid]);
+            setPreviews(p => [...p, ...valid.map(f => URL.createObjectURL(f))]);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const removeFile = (i: number) => {
@@ -177,6 +235,7 @@ export default function PublicScheduler() {
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (processing) return showToast('กรุณารอรูปภาพประมวลผลเสร็จสิ้น', 'warn');
         if (!text.trim()) return showToast('กรุณาใส่ข้อความ', 'warn');
         if (!scheduledTime) return showToast('กรุณาเลือกเวลาส่ง', 'warn');
         try {
@@ -342,7 +401,13 @@ export default function PublicScheduler() {
                                                 <div className="g-gallery-num">{i + 1}</div>
                                             </div>
                                         ))}
-                                        {files.length > 0 && files.length < 3 && (
+                                        {processing && (
+                                            <div className="g-gallery-item g-processing">
+                                                <Loader2 size={24} className="g-spin" />
+                                                <div className="g-proc-txt">กำลังบีบอัดรูป...</div>
+                                            </div>
+                                        )}
+                                        {files.length > 0 && files.length < 3 && !processing && (
                                             <div
                                                 className={`g-dropzone mini ${dragOver ? 'over' : ''}`}
                                                 onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
