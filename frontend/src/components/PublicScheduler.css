@@ -1021,19 +1021,6 @@
     border-color: var(--gold);
 }
 
-/* Date Group */
-.g-img-area {
-    margin-top: 8px;
-}
-
-
-.g-gallery {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 7px 12px;
-    margin: 6px 0 5px;
-}
 
 .g-dg {
     margin-bottom: 2px;
