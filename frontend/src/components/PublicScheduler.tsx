@@ -358,10 +358,49 @@ export default function PublicScheduler() {
                                         ) : <div className="g-time-placeholder">เลือกเวลา -- : --</div>}
                                     </div>
                                 </div>
+
+                                {/* Quick Time Presets */}
+                                <div className="g-presets">
+                                    {[5, 10, 15, 30, 60].map(mins => (
+                                        <button
+                                            key={mins}
+                                            type="button"
+                                            className="g-preset-btn"
+                                            onClick={() => {
+                                                const d = new Date();
+                                                d.setMinutes(d.getMinutes() + mins);
+                                                // Adjust to local datetime-local format: YYYY-MM-DDTHH:mm
+                                                const year = d.getFullYear();
+                                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                                const day = String(d.getDate()).padStart(2, '0');
+                                                const hours = String(d.getHours()).padStart(2, '0');
+                                                const minutes = String(d.getMinutes()).padStart(2, '0');
+                                                setScheduledTime(`${year}-${month}-${day}T${hours}:${minutes}`);
+                                            }}
+                                        >
+                                            +{mins < 60 ? `${mins} นาที` : `${mins / 60} ชม.`}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        className="g-preset-btn"
+                                        onClick={() => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() + 1);
+                                            d.setHours(9, 0, 0, 0);
+                                            const year = d.getFullYear();
+                                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                                            const day = String(d.getDate()).padStart(2, '0');
+                                            setScheduledTime(`${year}-${month}-${day}T09:00`);
+                                        }}
+                                    >
+                                        พรุ่งนี้ 09:00
+                                    </button>
+                                </div>
                             </div>
                             <div className="g-actions">
                                 <button type="submit" disabled={sending} className="g-btn-save">
-                                    {sending ? <><Loader2 size={18} className="g-spin" /> บันทึก...</> : <><Save size={18} /> บันทึก</>}
+                                    {sending ? <><Loader2 size={18} className="g-spin" /> บันทึก...</> : <><Save size={18} /> บันทึกข้อความการจอง</>}
                                 </button>
                                 <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /> เคลียร์</button>
                             </div>

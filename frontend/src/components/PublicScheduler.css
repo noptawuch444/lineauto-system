@@ -143,6 +143,83 @@
     animation: spin .6s linear infinite;
 }
 
+@keyframes shine {
+    0% {
+        left: -100%;
+        transition: property duration cubic-bezier(0, 0, 0, 0);
+    }
+
+    100% {
+        left: 100%;
+        transition: property duration cubic-bezier(0, 0, 0, 0);
+    }
+}
+
+.g-btn-save {
+    position: relative;
+    overflow: hidden;
+    flex: 2;
+    padding: 11px 0;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-family: 'Prompt', sans-serif;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, #d4af37 0%, #c9a84c 30%, #b8962e 60%, #a88728 100%);
+    color: #1a1200;
+    box-shadow: 0 4px 16px rgba(201, 168, 76, .3), inset 0 1px 0 rgba(255, 255, 255, .2), inset 0 -1px 0 rgba(0, 0, 0, .15);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .15);
+    letter-spacing: .3px;
+}
+
+.g-btn-save::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -100%;
+    width: 50%;
+    height: 200%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: rotate(30deg);
+    animation: shine 4s infinite;
+}
+
+/* ═══ QUICK PRESETS ═══ */
+.g-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.g-preset-btn {
+    background: rgba(201, 168, 76, 0.05);
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    color: var(--gold-light);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.g-preset-btn:hover {
+    background: var(--gold);
+    color: #1a1200;
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.g-preset-btn.active {
+    background: var(--gold-dark);
+    color: white;
+    border-color: var(--gold-light);
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);
@@ -361,6 +438,7 @@
     flex-direction: column;
     min-height: 0;
     overflow-x: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(201, 168, 76, 0.05);
 }
 
 .g-panel-head {
@@ -916,31 +994,45 @@
 }
 
 .g-st {
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     gap: 6px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .g-st.st-pending {
+    background: rgba(201, 168, 76, 0.1);
+    border: 1px solid rgba(201, 168, 76, 0.3);
     color: var(--gold);
 }
 
 .g-st.st-sent {
+    background: rgba(94, 189, 114, 0.1);
+    border: 1px solid rgba(94, 189, 114, 0.3);
     color: var(--green);
 }
 
 .g-st.st-sending {
+    background: rgba(91, 155, 213, 0.1);
+    border: 1px solid rgba(91, 155, 213, 0.3);
     color: var(--blue);
 }
 
 .g-st.st-failed {
+    background: rgba(224, 85, 85, 0.1);
+    border: 1px solid rgba(224, 85, 85, 0.3);
     color: var(--red);
 }
 
 .g-st.st-cancelled {
+    background: rgba(90, 78, 56, 0.1);
+    border: 1px solid rgba(90, 78, 56, 0.3);
     color: var(--dim);
 }
 
