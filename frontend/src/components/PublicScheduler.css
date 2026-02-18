@@ -1179,30 +1179,49 @@
 }
 
 .g-det-imgs {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    flex-wrap: wrap;
+    margin-top: 5px;
 }
 
-.g-det-img {
-    width: 68px;
-    height: 68px;
-    border-radius: 8px;
-    overflow-x: hidden;
-    border: 1px solid var(--border-h);
-    transition: transform .15s;
-}
-
-.g-det-img:hover {
-    transform: scale(1.06);
-}
-
-.g-det-img img {
+.g-det-img-small {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 1;
     object-fit: cover;
-    display: block;
+    border-radius: 6px;
+    border: 1px solid var(--border-h);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.g-det-img-small:hover {
+    transform: scale(1.05);
+    border-color: var(--gold);
+    z-index: 2;
+}
+
+.g-item-del {
+    background: rgba(224, 85, 85, 0.08);
+    border: 1px solid rgba(224, 85, 85, 0.2);
+    color: var(--red);
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.g-item-del:hover {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+    box-shadow: 0 0 10px rgba(224, 85, 85, 0.4);
+}
+
 
 .g-det-log {
     font-size: 13px;

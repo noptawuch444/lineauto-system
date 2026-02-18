@@ -125,6 +125,18 @@ export default function PublicScheduler() {
         try { const r = await axios.get(`${API}/public-template/template/${publicCode}/messages`); setMessages(r.data); } catch { /* */ }
     };
 
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!window.confirm('ยืนยันระบบการยกเลิกรายการนี้?')) return;
+        try {
+            await axios.delete(`${API}/public-template/schedule/${publicCode}/${id}`);
+            showToast('ยกเลิกรายการเรียบร้อย', 'ok');
+            loadMessages();
+        } catch (e: any) {
+            showToast(e.response?.data?.error || 'ยกเลิกไม่สำเร็จ', 'err');
+        }
+    };
+
     const addFiles = (incoming: File[]) => {
         const slots = 3 - files.length; if (slots <= 0) return;
         const valid = incoming.slice(0, slots).filter(f => f.type.startsWith('image/')); if (!valid.length) return;
@@ -403,7 +415,14 @@ export default function PublicScheduler() {
                                         return (
                                             <div key={m.id} className={`g-msg ${st.cls} ${open ? 'open' : ''}`} onClick={() => setExpanded(open ? null : m.id)}>
                                                 <div className="g-msg-r1">
-                                                    <span className={`g-st ${st.cls}`}>{st.icon} {st.label}</span>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        <span className={`g-st ${st.cls}`}>{st.icon} {st.label}</span>
+                                                        {m.status === 'pending' && (
+                                                            <button className="g-item-del" onClick={e => handleDelete(m.id, e)} title="ยกเลิกรายการ">
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                     <span className="g-msg-time"><Clock size={12} /> {fmtTime(m.scheduledTime)}</span>
                                                 </div>
                                                 <div className="g-msg-text">{m.content}</div>
