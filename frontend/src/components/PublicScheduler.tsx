@@ -401,13 +401,7 @@ export default function PublicScheduler() {
                                                 <div className="g-gallery-num">{i + 1}</div>
                                             </div>
                                         ))}
-                                        {processing && (
-                                            <div className="g-gallery-item g-processing">
-                                                <Loader2 size={24} className="g-spin" />
-                                                <div className="g-proc-txt">กำลังบีบอัดรูป...</div>
-                                            </div>
-                                        )}
-                                        {files.length > 0 && files.length < 3 && !processing && (
+                                        {files.length > 0 && files.length < 3 && (
                                             <div
                                                 className={`g-dropzone mini ${dragOver ? 'over' : ''}`}
                                                 onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)); }}
