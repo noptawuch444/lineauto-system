@@ -157,48 +157,8 @@
     }
 }
 
-@keyframes shine {
-    0% {
-        left: -100%;
-        transition: property duration cubic-bezier(0, 0, 0, 0);
-    }
 
-    100% {
-        left: 100%;
-        transition: property duration cubic-bezier(0, 0, 0, 0);
-    }
-}
 
-.g-btn-save {
-    position: relative;
-    overflow: hidden;
-    flex: 2;
-    padding: 11px 0;
-    border-radius: 8px;
-    font-size: 17px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    font-family: 'Prompt', sans-serif;
-    transition: all 0.2s;
-    background: linear-gradient(135deg, #d4af37 0%, #c9a84c 30%, #b8962e 60%, #a88728 100%);
-    color: #1a1200;
-    box-shadow: 0 4px 16px rgba(201, 168, 76, .3), inset 0 1px 0 rgba(255, 255, 255, .2), inset 0 -1px 0 rgba(0, 0, 0, .15);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, .15);
-    letter-spacing: .3px;
-}
-
-.g-btn-save::after {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -100%;
-    width: 50%;
-    height: 200%;
-    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transform: rotate(30deg);
-    animation: shine 4s infinite;
-}
 
 /* ═══ QUICK PRESETS ═══ */
 .g-presets {
