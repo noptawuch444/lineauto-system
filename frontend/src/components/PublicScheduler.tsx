@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
     FileText, PencilLine, Image as ImageIcon, Clock, Save, Trash2,
     ClipboardList, Inbox, Calendar, Hourglass, Send,
-    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye
+    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye, X
 } from 'lucide-react';
 import './PublicScheduler.css';
 
@@ -31,6 +31,7 @@ export default function PublicScheduler() {
     const [imageFirst, setImageFirst] = useState(false);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
+    const [showPreview, setShowPreview] = useState(false);
 
     const fileRef = useRef<HTMLInputElement>(null);
     const timeRef = useRef<HTMLInputElement>(null);
@@ -216,33 +217,30 @@ export default function PublicScheduler() {
 
     // Live Preview Component
     const PreviewBox = () => (
-        <div className="g-preview-wrap">
-            <div className="g-preview-label"><Eye size={14} /> ตัวอย่างการแสดงผลใน LINE</div>
-            <div className="line-chat">
-                <div className="line-msg-row">
-                    <div className="line-avatar">
-                        <img src="/logo.jpg" alt="" />
-                    </div>
-                    <div className="line-content">
-                        <div className="line-bot-name">{template?.name || 'AutoBot'}</div>
-                        <div className="line-bubbles">
-                            {imageFirst ? (
-                                <>
-                                    {previews.map((url, i) => (
-                                        <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
-                                    ))}
-                                    {text && <div className="line-bubble-text">{text}</div>}
-                                </>
-                            ) : (
-                                <>
-                                    {text && <div className="line-bubble-text">{text}</div>}
-                                    {previews.map((url, i) => (
-                                        <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
-                                    ))}
-                                </>
-                            )}
-                            {!text && !previews.length && <div className="line-bubble-empty">กำลังพิมพ์...</div>}
-                        </div>
+        <div className="line-chat">
+            <div className="line-msg-row">
+                <div className="line-avatar">
+                    <img src="/logo.jpg" alt="" />
+                </div>
+                <div className="line-content">
+                    <div className="line-bot-name">{template?.name || 'AutoBot'}</div>
+                    <div className="line-bubbles">
+                        {imageFirst ? (
+                            <>
+                                {previews.map((url, i) => (
+                                    <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                ))}
+                                {text && <div className="line-bubble-text">{text}</div>}
+                            </>
+                        ) : (
+                            <>
+                                {text && <div className="line-bubble-text">{text}</div>}
+                                {previews.map((url, i) => (
+                                    <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                ))}
+                            </>
+                        )}
+                        {!text && !previews.length && <div className="line-bubble-empty">กำลังพิมพ์...</div>}
                     </div>
                 </div>
             </div>
@@ -296,8 +294,6 @@ export default function PublicScheduler() {
             <main className="g-body">
                 <section className="g-panel">
                     <div className="g-panel-head"><div className="g-panel-title"><PencilLine size={18} /><span>สร้างรายการใหม่</span></div></div>
-                    {/* Locked Preview at the top */}
-                    <PreviewBox />
 
                     <div className="g-scroll-box">
                         <form onSubmit={submit} className="g-form">
@@ -358,49 +354,13 @@ export default function PublicScheduler() {
                                         ) : <div className="g-time-placeholder">เลือกเวลา -- : --</div>}
                                     </div>
                                 </div>
-
-                                {/* Quick Time Presets */}
-                                <div className="g-presets">
-                                    {[5, 10, 15, 30, 60].map(mins => (
-                                        <button
-                                            key={mins}
-                                            type="button"
-                                            className="g-preset-btn"
-                                            onClick={() => {
-                                                const d = new Date();
-                                                d.setMinutes(d.getMinutes() + mins);
-                                                // Adjust to local datetime-local format: YYYY-MM-DDTHH:mm
-                                                const year = d.getFullYear();
-                                                const month = String(d.getMonth() + 1).padStart(2, '0');
-                                                const day = String(d.getDate()).padStart(2, '0');
-                                                const hours = String(d.getHours()).padStart(2, '0');
-                                                const minutes = String(d.getMinutes()).padStart(2, '0');
-                                                setScheduledTime(`${year}-${month}-${day}T${hours}:${minutes}`);
-                                            }}
-                                        >
-                                            +{mins < 60 ? `${mins} นาที` : `${mins / 60} ชม.`}
-                                        </button>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        className="g-preset-btn"
-                                        onClick={() => {
-                                            const d = new Date();
-                                            d.setDate(d.getDate() + 1);
-                                            d.setHours(9, 0, 0, 0);
-                                            const year = d.getFullYear();
-                                            const month = String(d.getMonth() + 1).padStart(2, '0');
-                                            const day = String(d.getDate()).padStart(2, '0');
-                                            setScheduledTime(`${year}-${month}-${day}T09:00`);
-                                        }}
-                                    >
-                                        พรุ่งนี้ 09:00
-                                    </button>
-                                </div>
                             </div>
                             <div className="g-actions">
                                 <button type="submit" disabled={sending} className="g-btn-save">
                                     {sending ? <><Loader2 size={18} className="g-spin" /> บันทึก...</> : <><Save size={18} /> บันทึกข้อความการจอง</>}
+                                </button>
+                                <button type="button" className="g-btn-preview" onClick={() => setShowPreview(true)}>
+                                    <Eye size={18} /> ตัวอย่าง
                                 </button>
                                 <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /> เคลียร์</button>
                             </div>
@@ -451,6 +411,22 @@ export default function PublicScheduler() {
                     </div>
                 </section>
             </main>
+
+            {/* PREVIEW MODAL */}
+            {showPreview && (
+                <div className="g-modal-overlay" onClick={() => setShowPreview(false)}>
+                    <div className="g-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="g-modal-head">
+                            <div className="g-modal-title"><Eye size={18} /> ตัวอย่างการแสดงผลใน LINE</div>
+                            <button className="g-modal-close" onClick={() => setShowPreview(false)}><X size={20} /></button>
+                        </div>
+                        <div className="g-modal-body">
+                            <PreviewBox />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="g-corner-deco" />
         </div>
     );
