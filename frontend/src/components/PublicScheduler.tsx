@@ -58,7 +58,7 @@ export default function PublicScheduler() {
         if (!ctx) return;
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
-        const flakeCount = 100;
+        const flakeCount = 50; // Reduced from 100 to 50 (50% less)
         const flakes: { x: number; y: number; r: number; d: number; s: number; color: string }[] = [];
         const goldShades = ['rgba(243, 207, 138, 0.8)', 'rgba(201, 168, 76, 0.9)', 'rgba(255, 235, 180, 0.7)', 'rgba(180, 140, 50, 0.9)'];
         for (let i = 0; i < flakeCount; i++) {
@@ -67,7 +67,7 @@ export default function PublicScheduler() {
                 y: Math.random() * height,
                 r: Math.random() * 2.5 + 1,
                 d: Math.random() * flakeCount,
-                s: Math.random() * 1.5 + 1,
+                s: (Math.random() * 1.5 + 1) * 0.7, // Slowed down by 30%
                 color: goldShades[Math.floor(Math.random() * goldShades.length)]
             });
         }
