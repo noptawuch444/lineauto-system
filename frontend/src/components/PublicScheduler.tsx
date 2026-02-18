@@ -6,7 +6,7 @@ import {
     FileText, PencilLine, Image as ImageIcon, Clock, Save, Trash2,
     ClipboardList, Inbox, Calendar, Hourglass, Send,
     CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye, X,
-    Wifi, BatteryFull, Signal, Zap
+    Wifi, BatteryFull, Signal
 } from 'lucide-react';
 import './PublicScheduler.css';
 
@@ -162,18 +162,6 @@ export default function PublicScheduler() {
         setPreviews(p => p.filter((_, x) => x !== i));
     };
 
-    const handleSendNow = (e: React.FormEvent) => {
-        e.preventDefault();
-        const now = new Date();
-        const tzOffset = now.getTimezoneOffset() * 60000;
-        const localISOTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
-        setScheduledTime(localISOTime);
-        // We use setTimeout to ensure state is updated before submit
-        setTimeout(() => {
-            const form = document.querySelector('.g-form') as HTMLFormElement;
-            if (form) form.requestSubmit();
-        }, 10);
-    };
 
     const clearForm = () => {
         setText(''); setScheduledTime('');
@@ -409,15 +397,12 @@ export default function PublicScheduler() {
                             </div>
                             <div className="g-actions">
                                 <button type="submit" disabled={sending} className={`g-btn-save ${sending ? 'loading' : ''}`}>
-                                    {sending ? <><Loader2 size={18} className="g-spin" /> <span>กำลังบันทึก...</span></> : <><Save size={18} /> <span>จองเวลาส่ง</span></>}
-                                </button>
-                                <button type="button" onClick={handleSendNow} disabled={sending} className="g-btn-now">
-                                    <Zap size={18} /> <span>ส่งทันที</span>
+                                    {sending ? <><Loader2 size={18} className="g-spin" /> <span>กำลังบันทึก...</span></> : <><Save size={18} /> <span>บันทึกข้อความการจอง</span></>}
                                 </button>
                                 <button type="button" className="g-btn-preview" onClick={() => setShowPreview(true)}>
-                                    <Eye size={18} />
+                                    <Eye size={18} /> ตัวอย่าง
                                 </button>
-                                <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /></button>
+                                <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /> เคลียร์</button>
                             </div>
                         </form>
                     </div>
