@@ -431,10 +431,16 @@ export default function PublicScheduler() {
                 <div className="g-modal-overlay" onClick={() => setShowPreview(false)}>
                     <div className="g-modal-content" onClick={e => e.stopPropagation()}>
                         <div className="g-modal-head">
-                            <div className="g-modal-title"><Eye size={18} /> ตัวอย่างการแสดงผลใน LINE</div>
-                            <button className="g-modal-close" onClick={() => setShowPreview(false)}><X size={20} /></button>
+                            <div className="g-phone-time">{format(new Date(), 'HH:mm')}</div>
+                            <div className="g-modal-title">LINE Preview</div>
+                            <div className="g-phone-icons">
+                                <span style={{ fontSize: '10px' }}>📶 🔋</span>
+                            </div>
                         </div>
                         <div className="g-modal-body">
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                                <button className="g-modal-close" onClick={() => setShowPreview(false)}><X size={16} /></button>
+                            </div>
                             <PreviewBox />
                         </div>
                     </div>
