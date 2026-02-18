@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
     FileText, PencilLine, Image as ImageIcon, Clock, Save, Trash2,
     ClipboardList, Inbox, Calendar, Hourglass, Send,
-    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, History, Eye, User
+    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye
 } from 'lucide-react';
 import './PublicScheduler.css';
 
@@ -31,7 +31,6 @@ export default function PublicScheduler() {
     const [imageFirst, setImageFirst] = useState(false);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
-    const [userHistory, setUserHistory] = useState<string[]>([]);
 
     const fileRef = useRef<HTMLInputElement>(null);
     const timeRef = useRef<HTMLInputElement>(null);
@@ -40,36 +39,12 @@ export default function PublicScheduler() {
     useEffect(() => {
         loadTemplate(true);
         loadMessages();
-        loadHistory();
         const iv = setInterval(() => {
             loadTemplate(false);
             loadMessages();
         }, 5000);
         return () => clearInterval(iv);
     }, [publicCode]);
-
-    const loadHistory = () => {
-        const saved = localStorage.getItem(`history-${publicCode}`);
-        if (saved) {
-            try {
-                setUserHistory(JSON.parse(saved));
-            } catch (e) {
-                setUserHistory([]);
-            }
-        }
-    };
-
-    const addHistory = (id: string) => {
-        const newHistory = [id, ...userHistory.slice(0, 19)];
-        setUserHistory(newHistory);
-        localStorage.setItem(`history-${publicCode}`, JSON.stringify(newHistory));
-    };
-
-    const removeHistory = (id: string) => {
-        const newHistory = userHistory.filter(h => h !== id);
-        setUserHistory(newHistory);
-        localStorage.setItem(`history-${publicCode}`, JSON.stringify(newHistory));
-    };
 
     // Snowfall Effect
     useEffect(() => {
@@ -185,28 +160,15 @@ export default function PublicScheduler() {
                 const r = await axios.post(`${API}/public-template/upload`, fd);
                 if (r.data.url) urls.push(r.data.url);
             }
-            const res = await axios.post(`${API}/public-template/schedule/${publicCode}`, {
+            await axios.post(`${API}/public-template/schedule/${publicCode}`, {
                 content: text, imageUrl: urls[0] || null, imageUrls: urls,
                 scheduledTime: new Date(scheduledTime).toISOString(),
                 imageFirst: imageFirst
             });
-            if (res.data.id) addHistory(res.data.id);
             clearForm(); loadMessages();
             showToast('ตั้งเวลาส่งข้อความเรียบร้อยแล้ว!', 'ok');
         } catch (e: any) { showToast(e.message || 'เกิดข้อผิดพลาด', 'err'); }
         finally { setSending(false); }
-    };
-
-    const deleteMessage = async (id: string) => {
-        if (!window.confirm('ยืนยันหน้าการยกเลิกรายการนี้?')) return;
-        try {
-            await axios.delete(`${API}/public-template/schedule/${publicCode}/${id}`);
-            showToast('ยกเลิกรายการเรียบร้อยแล้ว', 'ok');
-            loadMessages();
-            removeHistory(id);
-        } catch (e: any) {
-            showToast(e.response?.data?.error || 'ไม่สามารถยกเลิกได้', 'err');
-        }
     };
 
     const minDT = () => {
@@ -334,6 +296,9 @@ export default function PublicScheduler() {
             <main className="g-body">
                 <section className="g-panel">
                     <div className="g-panel-head"><div className="g-panel-title"><PencilLine size={18} /><span>สร้างรายการใหม่</span></div></div>
+                    {/* Locked Preview at the top */}
+                    <PreviewBox />
+
                     <div className="g-scroll-box">
                         <form onSubmit={submit} className="g-form">
                             <div className="g-fg">
@@ -401,35 +366,12 @@ export default function PublicScheduler() {
                                 <button type="button" onClick={clearForm} disabled={sending} className="g-btn-clear"><Trash2 size={16} /> เคลียร์</button>
                             </div>
                         </form>
-                        <PreviewBox />
                     </div>
                 </section>
 
                 <section className="g-panel">
-                    <div className="g-panel-head"><div className="g-panel-title"><ClipboardList size={18} /><span>รายการทั้งหมด ({messages.length})</span></div></div>
+                    <div className="g-panel-head"><div className="g-panel-title"><ClipboardList size={18} /><span>รายการรวมทั้งหมด ({messages.length})</span></div></div>
                     <div className="g-list">
-                        {/* ═══ RECENT USER HISTORY ═══ */}
-                        {userHistory.length > 0 && (
-                            <div className="g-history-sec">
-                                <div className="g-history-head"><History size={14} /> รายการที่คุณเพิ่งสร้าง (แจ้งเตือน/ยกเลิกได้)</div>
-                                <div className="g-history-list">
-                                    {messages.filter(m => userHistory.includes(m.id)).map(m => (
-                                        <div key={`h-${m.id}`} className="g-h-item">
-                                            <div className="g-h-info">
-                                                <div className="g-h-time">{fmtTime(m.scheduledTime)}</div>
-                                                <div className="g-h-txt">{m.content.slice(0, 40)}{m.content.length > 40 ? '...' : ''}</div>
-                                            </div>
-                                            {m.status === 'pending' && (
-                                                <button className="g-h-del" onClick={() => deleteMessage(m.id)}><Trash2 size={14} /> ยกเลิก</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="g-divider"><User size={14} /> รายการรวมของเทมเพลตนี้</div>
-
                         {messages.length === 0 ? (
                             <div className="g-empty"><div className="g-empty-icon"><Inbox size={48} /></div><p>ยังไม่มีข้อความ</p></div>
                         ) : groups.map(([label, msgs]) => {
@@ -449,7 +391,6 @@ export default function PublicScheduler() {
                                                 <div className="g-msg-r1">
                                                     <span className={`g-st ${st.cls}`}>{st.icon} {st.label}</span>
                                                     <span className="g-msg-time"><Clock size={12} /> {fmtTime(m.scheduledTime)}</span>
-                                                    {userHistory.includes(m.id) && <span className="g-mine-badge">ของคุณ</span>}
                                                 </div>
                                                 <div className="g-msg-text">{m.content}</div>
                                                 {open && (
@@ -459,9 +400,6 @@ export default function PublicScheduler() {
                                                             <div className="g-det-imgs">
                                                                 {imgs.map((url, i) => <img key={i} src={url} alt="" className="g-det-img-small" />)}
                                                             </div>
-                                                        )}
-                                                        {userHistory.includes(m.id) && m.status === 'pending' && (
-                                                            <button className="g-btn-cancel-big" onClick={() => deleteMessage(m.id)}><Trash2 size={16} /> ยกเลิกรายการนี้</button>
                                                         )}
                                                     </div>
                                                 )}
