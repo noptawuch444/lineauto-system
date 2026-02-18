@@ -71,7 +71,7 @@
     width: 100vw;
     height: 100vh;
     pointer-events: none;
-    z-index: 8;
+    z-index: 9;
     overflow-x: hidden;
 }
 
@@ -85,9 +85,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    /* Let clicks pass through */
-    z-index: 1;
-    /* Above grid/lines within this container */
+    z-index: 9;
 }
 
 /* Corner Glow - Brighter and Larger */
