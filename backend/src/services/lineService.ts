@@ -1,11 +1,18 @@
 import { Client, ClientConfig, TextMessage, ImageMessage } from '@line/bot-sdk';
 import prisma from './db';
 
-// Cache for LINE Clients
+// Cache for LINE Clients to prevent redundant allocations
 const clientCache: Record<string, Client> = {};
 
 // Function to get fresh credentials from database if botId provided, or use token/env
 async function getClient(token?: string, botId?: string): Promise<Client> {
+    const cacheKey = botId || token || 'default';
+
+    // Check cache first for performance
+    if (clientCache[cacheKey]) {
+        return clientCache[cacheKey];
+    }
+
     let accessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
     let secret = process.env.LINE_CHANNEL_SECRET || '';
 
@@ -17,15 +24,18 @@ async function getClient(token?: string, botId?: string): Promise<Client> {
                 secret = bot.channelSecret?.trim() || secret;
             }
         } catch (dbErr) {
-            console.error('Error fetching bot details from DB:', dbErr);
+            console.error('⚠️ DB Fetch Failed:', dbErr);
         }
     }
 
-    // Return a new client to ensure fresh config/token
-    return new Client({
+    const client = new Client({
         channelAccessToken: accessToken,
         channelSecret: secret,
     });
+
+    // Cache the client
+    clientCache[cacheKey] = client;
+    return client;
 }
 
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -33,6 +43,33 @@ const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 export interface MessageTarget {
     type: 'user' | 'group' | 'room';
     ids: string[];
+}
+
+/**
+ * Core internal function for sequential batch sending with throttling
+ */
+async function batchSend(client: Client, ids: string[], messages: any[]): Promise<{ success: boolean; error?: string }> {
+    const results = [];
+    const isLargeBatch = ids.length > 5;
+
+    for (const id of ids) {
+        try {
+            await client.pushMessage(id, messages);
+            results.push({ id, success: true });
+
+            // Critical: Respect LINE rate limits via sequential throttle
+            if (isLargeBatch) await sleep(100);
+        } catch (error: any) {
+            console.error(`❌ [Batch Failed] ${id}: ${error.message}`);
+            results.push({ id, success: false, error: error.message });
+        }
+    }
+
+    const failed = results.filter(r => !r.success);
+    if (failed.length > 0) {
+        return { success: false, error: `Failed to deliver to ${failed.length} targets` };
+    }
+    return { success: true };
 }
 
 /**
@@ -46,41 +83,12 @@ export async function sendTextMessage(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const client = await getClient(token, botId);
-        const channelAccessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+        const message: TextMessage = { type: 'text', text };
 
-        console.log('\n🔍 sendTextMessage called');
-        console.log('   Target type:', target.type);
-        console.log('   Target IDs:', target.ids);
-        console.log('   Message:', text);
-
-        const message: TextMessage = {
-            type: 'text',
-            text,
-        };
-
-        // Send to all target IDs sequentially with small delay to avoid rate limits
-        const results = [];
-        for (const id of target.ids) {
-            try {
-                await client.pushMessage(id, message);
-                results.push({ id, success: true });
-                if (target.ids.length > 5) await sleep(100); // 100ms throttle
-            } catch (error: any) {
-                console.error(`❌ [Failed] ${id}: ${error.message}`);
-                results.push({ id, success: false, error: error.message });
-            }
-        }
-        const failed = results.filter(r => !r.success);
-
-        if (failed.length > 0) {
-            const errorMsg = `Failed to send to ${failed.length} target(s)`;
-            return { success: false, error: errorMsg };
-        }
-
-        console.log('\n✅ All messages sent successfully!');
-        return { success: true };
+        console.log(`🚀 [TEXT] Delivering to ${target.ids.length} IDs...`);
+        return await batchSend(client, target.ids, [message]);
     } catch (error: any) {
-        console.error('\n❌ Error in sendTextMessage:', error);
+        console.error('💥 TEXT_SEND_CRITICAL:', error);
         return { success: false, error: error.message };
     }
 }
@@ -100,31 +108,20 @@ export async function sendImageMessage(
         const client = await getClient(token, botId);
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
-        console.log('\n🔍 sendImageMessage called');
-        console.log('   Text:', text || 'No text');
-        console.log('   Image URLs:', urls.length, 'images');
-
-        const messages: (TextMessage | ImageMessage)[] = [];
-        const imageMessages: ImageMessage[] = [];
-
-        // Build image messages first
-        const remainingSlots = text ? 4 : 5;
-        const imagesToSend = urls.slice(0, remainingSlots);
-
-        for (const url of imagesToSend) {
-            let fullImageUrl = url;
+        const messages: any[] = [];
+        const imageMessages = urls.slice(0, text ? 4 : 5).map(url => {
+            let fullUrl = url;
             if (!url.startsWith('http') && !url.startsWith('data:')) {
-                fullImageUrl = `${process.env.BASE_URL || 'http://localhost:3000'}${url}`;
+                fullUrl = `${process.env.BASE_URL || 'http://localhost:3000'}${url}`;
             }
-
-            imageMessages.push({
+            return {
                 type: 'image',
-                originalContentUrl: fullImageUrl,
-                previewImageUrl: fullImageUrl,
-            });
-        }
+                originalContentUrl: fullUrl,
+                previewImageUrl: fullUrl,
+            };
+        });
 
-        const textMessage: TextMessage | null = text ? { type: 'text', text } : null;
+        const textMessage = text ? { type: 'text', text } : null;
 
         if (imageFirst) {
             messages.push(...imageMessages);
@@ -134,27 +131,12 @@ export async function sendImageMessage(
             messages.push(...imageMessages);
         }
 
-        if (messages.length === 0) return { success: false, error: 'No content to send' };
+        if (messages.length === 0) return { success: false, error: 'Empty content' };
 
-        // Sequential sending with throttle
-        const results = [];
-        for (const id of target.ids) {
-            try {
-                await client.pushMessage(id, messages);
-                results.push({ id, success: true });
-                if (target.ids.length > 5) await sleep(100);
-            } catch (error: any) {
-                console.error(`❌ [Failed] ${id}: ${error.message}`);
-                results.push({ id, success: false, error: error.message });
-            }
-        }
-        const failed = results.filter(r => !r.success);
-
-        if (failed.length > 0) return { success: false, error: 'Failed to send to some targets' };
-
-        return { success: true };
+        console.log(`🚀 [IMAGE] Delivering ${messages.length} pkgs to ${target.ids.length} IDs...`);
+        return await batchSend(client, target.ids, messages);
     } catch (error: any) {
-        console.error('\n❌ Error in sendImageMessage:', error);
+        console.error('💥 IMAGE_SEND_CRITICAL:', error);
         return { success: false, error: error.message };
     }
 }
