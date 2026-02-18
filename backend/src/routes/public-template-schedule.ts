@@ -5,6 +5,7 @@ import { uploadToImgur } from '../services/imgurService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { checkAndSendMessages } from '../services/schedulerService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -91,6 +92,12 @@ router.post('/schedule/:publicCode', async (req, res) => {
                 botId: template.botId
             }
         });
+
+        // Trigger scheduler immediately if scheduledTime is now or in the past
+        if (new Date(scheduledTime) <= new Date()) {
+            checkAndSendMessages().catch(e => console.error('Immediate Trigger Failed:', e));
+        }
+
         res.status(201).json({ success: true, id: msg.id });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

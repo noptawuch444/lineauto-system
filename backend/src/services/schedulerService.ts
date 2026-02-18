@@ -7,7 +7,7 @@ let isProcessing = false;
 /**
  * Check for pending messages and send them if it's time
  */
-async function checkAndSendMessages() {
+export async function checkAndSendMessages() {
     if (isProcessing) return; // Prevent overlapping runs
 
     try {
@@ -15,17 +15,20 @@ async function checkAndSendMessages() {
         const now = new Date();
 
         // 1. Fetch pending messages
+        // We look for messages slightly into the future (e.g., +2 seconds) to compensate for processing time
+        const checkWindow = new Date(now.getTime() + 2000);
+
         const pendingMessages = await prisma.scheduledMessage.findMany({
             where: {
                 status: 'pending',
-                scheduledTime: { lte: now }
+                scheduledTime: { lte: checkWindow }
             },
             take: 50
         });
 
         if (pendingMessages.length === 0) return;
 
-        console.log(`📨 [OPTIMIZED] Processing ${pendingMessages.length} message(s)...`);
+        console.log(`📨 [REALTIME] Processing ${pendingMessages.length} message(s)...`);
 
         // 2. Mark as 'sending' immediately to prevent other runs from picking them up
         const messageIds = pendingMessages.map(m => m.id);
@@ -81,13 +84,13 @@ async function checkAndSendMessages() {
 }
 
 /**
- * Initialize the scheduler to check every minute
+ * Initialize the scheduler to check every 10 seconds for "realtime" feel
  */
 export function initScheduler() {
-    // Run every minute
-    cron.schedule('* * * * *', () => {
+    // Run every 10 seconds
+    cron.schedule('*/10 * * * * *', () => {
         checkAndSendMessages();
     });
 
-    console.log('✅ Scheduler initialized - checking every minute');
+    console.log('🚀 Realtime Scheduler initialized - checking every 10s');
 }
