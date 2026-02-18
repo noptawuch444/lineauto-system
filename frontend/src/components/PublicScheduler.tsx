@@ -5,7 +5,8 @@ import axios from 'axios';
 import {
     FileText, PencilLine, Image as ImageIcon, Clock, Save, Trash2,
     ClipboardList, Inbox, Calendar, Hourglass, Send,
-    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye, X
+    CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Headset, Eye, X,
+    Wifi, BatteryFull, Signal
 } from 'lucide-react';
 import './PublicScheduler.css';
 
@@ -429,19 +430,22 @@ export default function PublicScheduler() {
             {/* PREVIEW MODAL */}
             {showPreview && (
                 <div className="g-modal-overlay" onClick={() => setShowPreview(false)}>
-                    <div className="g-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="g-modal-content phone-shell" onClick={e => e.stopPropagation()}>
                         <div className="g-modal-head">
                             <div className="g-phone-time">{format(new Date(), 'HH:mm')}</div>
-                            <div className="g-modal-title">LINE Preview</div>
                             <div className="g-phone-icons">
-                                <span style={{ fontSize: '10px' }}>📶 🔋</span>
+                                <Signal size={12} strokeWidth={2.5} />
+                                <Wifi size={12} strokeWidth={2.5} />
+                                <BatteryFull size={14} strokeWidth={2.5} style={{ marginLeft: '4px' }} />
                             </div>
                         </div>
                         <div className="g-modal-body">
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                            <div className="g-chat-header">
+                                <div className="g-modal-title">LINE Preview</div>
                                 <button className="g-modal-close" onClick={() => setShowPreview(false)}><X size={16} /></button>
                             </div>
                             <PreviewBox />
+                            <div className="g-phone-home-bar" />
                         </div>
                     </div>
                 </div>
