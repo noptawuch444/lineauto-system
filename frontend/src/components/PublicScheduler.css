@@ -134,13 +134,27 @@
     font-size: 15px;
 }
 
-.g-spin {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(201, 168, 76, .12);
+.g-loader-full {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(201, 168, 76, .1);
     border-top-color: var(--gold);
     border-radius: 50%;
-    animation: spin .6s linear infinite;
+    animation: g-spin 1s linear infinite;
+}
+
+.g-spin {
+    animation: g-spin 1s linear infinite;
+}
+
+@keyframes g-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes shine {
@@ -709,9 +723,115 @@
     background: transparent;
 }
 
-.g-scroll-box::-webkit-scrollbar-thumb {
-    background: rgba(201, 168, 76, 0.1);
-    border-radius: 2px;
+/* ═══ CUSTOM CONFIRM MODAL ═══ */
+.g-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.g-confirm-modal {
+    background: #1a1710;
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(201, 168, 76, 0.1);
+    animation: modalSlideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.g-confirm-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(224, 85, 85, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--red);
+    margin: 0 auto 16px;
+}
+
+.g-confirm-modal h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    color: var(--white);
+}
+
+.g-confirm-modal p {
+    color: var(--dim);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.g-confirm-btns {
+    display: flex;
+    gap: 12px;
+}
+
+.g-confirm-btns button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.g-btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--white);
+}
+
+.g-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.g-btn-danger {
+    background: var(--red);
+    border: none;
+    color: #fff;
+}
+
+.g-btn-danger:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(224, 85, 85, 0.3);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Drop Zone */
@@ -783,9 +903,11 @@
 
 .g-btn-save {
     flex: 2;
-    padding: 11px 0;
+    padding: 11px 4px;
+    /* Reduced side padding slightly */
     border-radius: 8px;
-    font-size: 17px;
+    font-size: 16px;
+    /* Slightly smaller to fit text */
     font-weight: 700;
     border: none;
     cursor: pointer;
@@ -798,7 +920,11 @@
         inset 0 1px 0 rgba(255, 255, 255, .2),
         inset 0 -1px 0 rgba(0, 0, 0, .15);
     text-shadow: 0 1px 0 rgba(255, 255, 255, .15);
-    letter-spacing: .3px;
+    letter-spacing: .1px;
+    overflow: hidden;
+    /* Prevent overflow */
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .g-btn-save:hover:not(:disabled) {
@@ -1718,10 +1844,6 @@
     flex: 1;
     background: #849ebc;
     overflow-y: auto;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    position: relative;
 }
 
 .g-modal-body::-webkit-scrollbar {
@@ -1839,4 +1961,117 @@
 .g-scroll-box::-webkit-scrollbar-thumb {
     background: rgba(201, 168, 76, 0.1);
     border-radius: 2px;
+}
+
+/* ═══ CUSTOM CONFIRM MODAL ═══ */
+.g-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+    animation: g-fadeIn 0.3s ease;
+}
+
+.g-confirm-modal {
+    background: #1a1710;
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(201, 168, 76, 0.15);
+    animation: g-modalSlideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.g-confirm-icon {
+    width: 54px;
+    height: 54px;
+    background: rgba(224, 85, 85, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--red);
+    margin: 0 auto 16px;
+}
+
+.g-confirm-modal h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    color: var(--white);
+    font-weight: 700;
+}
+
+.g-confirm-modal p {
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.g-confirm-btns {
+    display: flex;
+    gap: 12px;
+}
+
+.g-confirm-btns button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.g-btn-cancel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--white);
+}
+
+.g-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--dim);
+}
+
+.g-btn-danger {
+    background: var(--red);
+    border: none;
+    color: #fff;
+}
+
+.g-btn-danger:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(224, 85, 85, 0.3);
+}
+
+@keyframes g-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes g-modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

@@ -33,6 +33,7 @@ export default function PublicScheduler() {
     const [expanded, setExpanded] = useState<string | null>(null);
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
     const [showPreview, setShowPreview] = useState(false);
+    const [confirmData, setConfirmData] = useState<{ id: string, title: string, text: string } | null>(null);
 
     const fileRef = useRef<HTMLInputElement>(null);
     const timeRef = useRef<HTMLInputElement>(null);
@@ -125,15 +126,26 @@ export default function PublicScheduler() {
         try { const r = await axios.get(`${API}/public-template/template/${publicCode}/messages`); setMessages(r.data); } catch { /* */ }
     };
 
-    const handleDelete = async (id: string, e: React.MouseEvent) => {
+    const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!window.confirm('ยืนยันระบบการยกเลิกรายการนี้?')) return;
+        setConfirmData({
+            id,
+            title: 'ยกเลิกรายการ?',
+            text: 'คุณต้องการยกเลิกการส่งข้อความรายการนี้ใช่หรือไม่? เมื่อยกเลิกแล้วจะไม่สามารถกู้คืนได้'
+        });
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!confirmData) return;
+        const { id } = confirmData;
         try {
             await axios.delete(`${API}/public-template/schedule/${publicCode}/${id}`);
             showToast('ยกเลิกรายการเรียบร้อย', 'ok');
+            setConfirmData(null);
             loadMessages();
         } catch (e: any) {
             showToast(e.response?.data?.error || 'ยกเลิกไม่สำเร็จ', 'err');
+            setConfirmData(null);
         }
     };
 
@@ -383,8 +395,8 @@ export default function PublicScheduler() {
                                 </div>
                             </div>
                             <div className="g-actions">
-                                <button type="submit" disabled={sending} className="g-btn-save">
-                                    {sending ? <><Loader2 size={18} className="g-spin" /> บันทึก...</> : <><Save size={18} /> บันทึกข้อความการจอง</>}
+                                <button type="submit" disabled={sending} className={`g-btn-save ${sending ? 'loading' : ''}`}>
+                                    {sending ? <><Loader2 size={18} className="g-spin" /> <span>กำลังบันทึก...</span></> : <><Save size={18} /> <span>บันทึกข้อความการจอง</span></>}
                                 </button>
                                 <button type="button" className="g-btn-preview" onClick={() => setShowPreview(true)}>
                                     <Eye size={18} /> ตัวอย่าง
@@ -447,6 +459,20 @@ export default function PublicScheduler() {
             </main>
 
             {/* PREVIEW MODAL */}
+            {confirmData && (
+                <div className="g-confirm-overlay" onClick={() => setConfirmData(null)}>
+                    <div className="g-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <div className="g-confirm-icon"><Trash2 size={32} /></div>
+                        <h3>{confirmData.title}</h3>
+                        <p>{confirmData.text}</p>
+                        <div className="g-confirm-btns">
+                            <button className="g-btn-cancel" onClick={() => setConfirmData(null)}>ยกเลิก</button>
+                            <button className="g-btn-danger" onClick={handleConfirmDelete}>ยืนยันการลบ</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showPreview && (
                 <div className="g-modal-overlay" onClick={() => setShowPreview(false)}>
                     <div className="g-modal-content phone-shell" onClick={e => e.stopPropagation()}>
