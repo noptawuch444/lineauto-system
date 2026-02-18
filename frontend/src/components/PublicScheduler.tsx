@@ -408,7 +408,6 @@ export default function PublicScheduler() {
                                                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                                                 onDragLeave={() => setDragOver(false)}
                                                 onClick={() => fileRef.current?.click()}
-                                                style={{ gridColumn: files.length === 1 ? 'span 2' : 'span 1' }}
                                             >
                                                 <div className="g-drop-content">
                                                     <div className="g-drop-icon"><ImageIcon size={20} /></div>
