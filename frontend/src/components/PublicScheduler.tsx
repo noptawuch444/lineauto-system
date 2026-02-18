@@ -297,7 +297,7 @@ export default function PublicScheduler() {
 
                     <div className="g-scroll-box">
                         <form onSubmit={submit} className="g-form">
-                            <div className="g-fg">
+                            <div className="g-fg g-fg-grow">
                                 <label>ข้อความ <span className="g-counter">({text.length} ตัวอักษร)</span></label>
                                 <textarea value={text} onChange={e => setText(e.target.value)} placeholder="พิมพ์ข้อความที่ต้องการส่ง..." className="g-ta" />
                             </div>
