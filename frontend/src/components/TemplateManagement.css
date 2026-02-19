@@ -26,7 +26,7 @@
 
 /* ── Base Layout ── */
 .adm {
-    padding: 10px 0 40px;
+    padding: 6px 0 30px;
     color: #f0e8d8;
     animation: adm-fade-in 0.3s ease-out;
 }
@@ -175,6 +175,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-family: inherit;
     transition: all 0.2s;
@@ -203,13 +204,19 @@
     color: #f0e8d8;
 }
 
+/* Wide / full-stretch button modifier */
+.adm-btn-wide {
+    flex: 1;
+    justify-content: center;
+}
+
 /* ── Panel (Form Area) ── */
 .adm-panel {
     background: #12120e;
     border: 1px solid rgba(201, 168, 76, 0.2);
     border-radius: 20px;
     overflow: hidden;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
     position: relative;
     animation: adm-slide-down 0.25s ease-out;
@@ -257,13 +264,13 @@
 
 /* ── Form ── */
 .adm-form {
-    padding: 20px 24px;
+    padding: 12px 24px 14px;
 }
 
 .adm-form-row {
     display: flex;
-    gap: 20px;
-    margin-bottom: 12px;
+    gap: 16px;
+    margin-bottom: 8px;
 }
 
 .flex-1 {
@@ -275,10 +282,10 @@
 }
 
 .adm-fg {
-    margin-bottom: 12px;
+    margin-bottom: 2px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .adm-fg label {
@@ -287,6 +294,9 @@
     color: #a89878;
     margin-left: 2px;
     letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .adm-input,
@@ -329,8 +339,8 @@ select.adm-input option {
 .adm-form-footer {
     display: flex;
     gap: 12px;
-    margin-top: 10px;
-    padding-top: 20px;
+    margin-top: 6px;
+    padding-top: 14px;
     border-top: 1px solid rgba(180, 150, 60, 0.1);
 }
 

@@ -510,6 +510,7 @@ export default function TemplateManagement() {
                         </div>
 
                         <div className="adm-form">
+                            {/* Row 1: ชื่อเทมเพลต (70%) | เลือกบอท (30%) */}
                             <div className="adm-form-row">
                                 <div className="adm-fg flex-2">
                                     <label>ชื่อเทมเพลต*</label>
@@ -536,6 +537,7 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
+                            {/* Row 2: คำอธิบาย (50%) | Target IDs (50%) */}
                             <div className="adm-form-row">
                                 <div className="adm-fg flex-1">
                                     <label>คำอธิบาย (สั้นๆ)</label>
@@ -547,9 +549,6 @@ export default function TemplateManagement() {
                                         placeholder="เช่น สำหรับทีมงานแอดมินส่งผลหวยรายวัน"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="adm-form-row">
                                 <div className="adm-fg flex-1">
                                     <label>Target IDs* (แยกด้วย comma)</label>
                                     <textarea
@@ -562,6 +561,7 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
+                            {/* Row 3: วันเริ่มต้น (50%) | วันสิ้นสุด (50%) */}
                             <div className="adm-form-row">
                                 <div className="adm-fg flex-1">
                                     <label><Calendar size={14} /> วันเริ่มต้นการใช้งาน</label>
@@ -583,13 +583,11 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
-
-
                             <div className="adm-form-footer">
-                                <button className="adm-btn-save" onClick={handleSave}>
+                                <button className="adm-btn-save adm-btn-wide" onClick={handleSave}>
                                     <Save size={18} /> บันทึกข้อมูล
                                 </button>
-                                <button className="adm-btn-clear" onClick={() => setIsEditing(false)}>
+                                <button className="adm-btn-clear adm-btn-wide" onClick={() => setIsEditing(false)}>
                                     ยกเลิก
                                 </button>
                             </div>
