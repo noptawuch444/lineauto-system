@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════
-   ADMIN TEMPLATE MANAGEMENT — GOLD LUXURY THEME
-   ═══════════════════════════════════════════════ */
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ADMIN TEMPLATE MANAGEMENT â€” GOLD LUXURY THEME
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 :root {
     --adm-bg: #08080c;
@@ -919,7 +919,7 @@ select.adm-input option {
         }
     }
 
-    /* Inline Quick Date Edit — on Card */
+    /* Inline Quick Date Edit â€” on Card */
     .adm-inline-dates {
         margin-top: 10px;
         min-width: 0;
@@ -1175,3 +1175,11 @@ select.adm-input option {
         border-color: var(--adm-gold);
     }
 }
+
+/* UI Fix for Date Inputs */
+input[type='datetime-local'] {
+    color-scheme: dark;
+}
+
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+    filter: invert(0.8) sepia(100%) saturate(1000%) hue-rotate(10deg);

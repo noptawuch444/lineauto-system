@@ -219,9 +219,22 @@ export default function TemplateManagement() {
     };
 
     const handleCreate = () => {
+        const now = new Date();
+        const nextYear = new Date();
+        nextYear.setFullYear(now.getFullYear() + 1);
+
         setIsEditing(true);
         setSelectedTemplate(null);
-        setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '', botId: bots[0]?.id || '', startDate: '', endDate: '' });
+        setFormData({
+            name: '',
+            description: '',
+            category: '',
+            targetType: 'group',
+            targetIds: '',
+            botId: bots[0]?.id || '',
+            startDate: toInputDate(now.toISOString()),
+            endDate: toInputDate(nextYear.toISOString())
+        });
     };
 
     const toInputDate = (dateStr: string | null | undefined) => {
@@ -580,6 +593,32 @@ export default function TemplateManagement() {
                                         value={formData.endDate}
                                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label>ปุ่มทางลัด (ระยะเวลา)</label>
+                                    <div className="adm-quick-duration-btns">
+                                        <button className="adm-btn-small" onClick={() => {
+                                            const d = new Date();
+                                            d.setMonth(d.getMonth() + 1);
+                                            setFormData({ ...formData, endDate: toInputDate(d.toISOString()) });
+                                        }}>+1 เดือน</button>
+                                        <button className="adm-btn-small" onClick={() => {
+                                            const d = new Date();
+                                            d.setMonth(d.getMonth() + 3);
+                                            setFormData({ ...formData, endDate: toInputDate(d.toISOString()) });
+                                        }}>+3 เดือน</button>
+                                        <button className="adm-btn-small" onClick={() => {
+                                            const d = new Date();
+                                            d.setFullYear(d.getFullYear() + 1);
+                                            setFormData({ ...formData, endDate: toInputDate(d.toISOString()) });
+                                        }}>+1 ปี</button>
+                                        <button className="adm-btn-small" onClick={() => {
+                                            setFormData({ ...formData, startDate: '', endDate: '' });
+                                        }}>ไม่จำกัดเวลา</button>
+                                    </div>
                                 </div>
                             </div>
 
