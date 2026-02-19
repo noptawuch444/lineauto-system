@@ -13,7 +13,13 @@ import './PublicScheduler.css';
 const API = import.meta.env.VITE_API_URL || '/api';
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
 
-interface Template { id: string; name: string; description?: string; }
+interface Template {
+    id: string;
+    name: string;
+    description?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+}
 interface Message { id: string; content: string; imageUrl?: string | null; imageUrls?: string[]; scheduledTime: string; status: string; createdAt: string; logs?: any[]; }
 
 export default function PublicScheduler() {
@@ -34,6 +40,7 @@ export default function PublicScheduler() {
     const [collapsedDays, setCollapsedDays] = useState<string[]>([]);
     const [showPreview, setShowPreview] = useState(false);
     const [confirmData, setConfirmData] = useState<{ id: string, title: string, text: string } | null>(null);
+    const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
     const fileRef = useRef<HTMLInputElement>(null);
     const timeRef = useRef<HTMLInputElement>(null);
@@ -45,9 +52,32 @@ export default function PublicScheduler() {
         const iv = setInterval(() => {
             loadTemplate(false);
             loadMessages();
-        }, 5000);
+        }, 8000); // 8 seconds for regular status updates
         return () => clearInterval(iv);
     }, [publicCode]);
+
+    // Fast timer for realtime feel (1 second)
+    useEffect(() => {
+        if (!template) return;
+        const timerIv = setInterval(() => {
+            const now = new Date();
+            if (template.endDate) {
+                const end = new Date(template.endDate);
+                const diff = end.getTime() - now.getTime();
+                if (diff <= 0) {
+                    setError('เทมเพลตนี้หมดอายุการใช้งานแล้ว');
+                    clearInterval(timerIv);
+                } else {
+                    // Update countdown if needed
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    setTimeLeft(`${hours > 0 ? hours + 'ชม. ' : ''}${minutes}น. ${seconds}วิ`);
+                }
+            }
+        }, 1000);
+        return () => clearInterval(timerIv);
+    }, [template]);
 
     // Snowfall Effect
     useEffect(() => {
@@ -369,8 +399,11 @@ export default function PublicScheduler() {
                 </div>
                 <div className="g-nav-r">
                     <div className="g-status">
-                        <small>สถานะระบบ</small>
-                        <span><div className="g-dot" /> พร้อมใช้งาน</span>
+                        <small>{timeLeft ? `จองได้อีก: ${timeLeft}` : 'สถานะระบบ'}</small>
+                        <span className={timeLeft ? 'live' : ''}>
+                            <div className="g-dot" />
+                            {timeLeft ? 'กำลังเปิดรับจอง' : 'พร้อมใช้งาน'}
+                        </span>
                     </div>
                     <button className="g-dl-btn" onClick={() => window.open(CONTACT_LINK, '_blank')}><Headset size={16} className="g-icon-inline" /> ติดต่อแอดมิน</button>
                 </div>

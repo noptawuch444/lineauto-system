@@ -48,11 +48,13 @@ export async function getTemplateById(id: string) {
  * Get template by public code
  */
 export async function getTemplateByPublicCode(publicCode: string) {
-    // Check cache
+    // Disabled cache for true real-time behavior as requested
+    /*
     const cached = publicCache.get(publicCode);
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
         return cached.data;
     }
+    */
 
     const template = await prisma.messageTemplate.findUnique({
         where: { publicCode }

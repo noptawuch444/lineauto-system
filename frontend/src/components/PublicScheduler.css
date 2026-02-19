@@ -338,6 +338,11 @@
     gap: 8px;
 }
 
+.g-status span.live {
+    color: var(--gold);
+    filter: drop-shadow(0 0 5px rgba(201, 168, 76, 0.4));
+}
+
 .g-dot {
     width: 8px;
     height: 8px;
