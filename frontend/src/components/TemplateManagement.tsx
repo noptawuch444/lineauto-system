@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Plus, Edit3, Trash2, Power, Copy, ExternalLink,
     Save, X, Layers, Target, Loader2, AlertTriangle,
-    CheckCircle2, XCircle, Database, RotateCw, Bot
+    CheckCircle2, XCircle, Database, RotateCw, Bot, Calendar
 } from 'lucide-react';
 import './TemplateManagement.css';
 
@@ -22,6 +22,8 @@ interface MessageTemplate {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    startDate?: string | null;
+    endDate?: string | null;
     bot?: { name: string } | null;
 }
 
@@ -45,7 +47,9 @@ export default function TemplateManagement() {
         category: '',
         targetType: 'group',
         targetIds: '',
-        botId: ''
+        botId: '',
+        startDate: '',
+        endDate: ''
     });
     const [toast, setToast] = useState<{ msg: string, type: 'ok' | 'err' | 'warn' } | null>(null);
 
@@ -197,7 +201,7 @@ export default function TemplateManagement() {
     const handleCreate = () => {
         setIsEditing(true);
         setSelectedTemplate(null);
-        setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '', botId: bots[0]?.id || '' });
+        setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '', botId: bots[0]?.id || '', startDate: '', endDate: '' });
     };
 
     const handleEdit = (template: MessageTemplate) => {
@@ -218,7 +222,9 @@ export default function TemplateManagement() {
             category: template.category || '',
             targetType: template.targetType,
             targetIds: targetIdsStr,
-            botId: template.botId || ''
+            botId: template.botId || '',
+            startDate: template.startDate ? template.startDate.slice(0, 16) : '',
+            endDate: template.endDate ? template.endDate.slice(0, 16) : ''
         });
     };
 
@@ -273,7 +279,9 @@ export default function TemplateManagement() {
                 category: formData.category,
                 targetType: formData.targetType,
                 targetIds: targetIdsArray,
-                botId: formData.botId || null
+                botId: formData.botId || null,
+                startDate: formData.startDate || null,
+                endDate: formData.endDate || null
             };
 
             if (selectedTemplate) {
@@ -509,6 +517,29 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันเริ่มต้นการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                    />
+                                    <small style={{ color: 'var(--dim)', fontSize: '11px' }}>ปล่อยว่างหากไม่จำกัด</small>
+                                </div>
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันสิ้นสุดการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.endDate}
+                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                    />
+                                    <small style={{ color: 'var(--dim)', fontSize: '11px' }}>ปล่อยว่างหากไม่จำกัด</small>
+                                </div>
+                            </div>
+
                             <div className="adm-form-footer">
                                 <button className="adm-btn-save" onClick={handleSave}>
                                     <Save size={18} /> บันทึกข้อมูล
@@ -552,6 +583,15 @@ export default function TemplateManagement() {
                                             <Target size={14} />
                                             <span>{template.targetType}</span>
                                         </div>
+                                        {(template.startDate || template.endDate) && (
+                                            <div className="adm-meta-item" style={{ color: 'var(--gold-light)' }}>
+                                                <Calendar size={14} />
+                                                <span style={{ fontSize: '11px' }}>
+                                                    {template.startDate ? new Date(template.startDate).toLocaleDateString('th-TH') : '...'} -
+                                                    {template.endDate ? new Date(template.endDate).toLocaleDateString('th-TH') : '...'}
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className="adm-meta-tags">
                                             {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
                                             {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
@@ -594,6 +634,6 @@ export default function TemplateManagement() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

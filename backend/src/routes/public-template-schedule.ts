@@ -16,6 +16,16 @@ router.get('/template/:publicCode', async (req, res) => {
         const template = await templateService.getTemplateByPublicCode(req.params.publicCode);
         if (!template) return res.status(404).json({ error: 'Template not found' });
         if (!template.isActive) return res.status(403).json({ error: 'Template is not active' });
+
+        // Date check
+        const now = new Date();
+        if (template.startDate && now < new Date(template.startDate)) {
+            return res.status(403).json({ error: 'Template is not yet active (Starts: ' + new Date(template.startDate).toLocaleDateString('th-TH') + ')' });
+        }
+        if (template.endDate && now > new Date(template.endDate)) {
+            return res.status(403).json({ error: 'Template has expired (Ended: ' + new Date(template.endDate).toLocaleDateString('th-TH') + ')' });
+        }
+
         res.json({ id: template.id, name: template.name, description: template.description, category: template.category });
     } catch (e) { res.status(500).json({ error: 'Failed' }); }
 });
@@ -75,6 +85,15 @@ router.post('/schedule/:publicCode', async (req, res) => {
 
         const template = await templateService.getTemplateByPublicCode(publicCode);
         if (!template) return res.status(404).json({ error: 'Template not found' });
+
+        // Date check
+        const now = new Date();
+        if (template.startDate && now < new Date(template.startDate)) {
+            return res.status(403).json({ error: 'Template is not yet active' });
+        }
+        if (template.endDate && now > new Date(template.endDate)) {
+            return res.status(403).json({ error: 'Template has expired' });
+        }
 
         const finalImageUrls = (imageUrls && Array.isArray(imageUrls)) ? JSON.stringify(imageUrls) : (imageUrl ? JSON.stringify([imageUrl]) : null);
 

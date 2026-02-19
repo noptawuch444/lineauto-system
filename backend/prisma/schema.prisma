@@ -57,6 +57,8 @@ model MessageTemplate {
   publicCode  String   @unique // รหัสสำหรับ public link (เช่น "abc123")
   botId       String?  // Assigned Bot for this template
   isActive    Boolean  @default(true) // เปิด/ปิดการใช้งาน
+  startDate   DateTime? // วันเริ่มต้นการใช้งาน
+  endDate     DateTime? // วันสิ้นสุดการใช้งาน
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

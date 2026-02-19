@@ -75,6 +75,8 @@ export async function createTemplate(data: {
     targetType: string;
     targetIds: string[];
     botId?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
 }) {
     const publicCode = generatePublicCode();
 
@@ -87,7 +89,9 @@ export async function createTemplate(data: {
             targetIds: JSON.stringify(data.targetIds),
             publicCode,
             isActive: true,
-            botId: data.botId || null
+            botId: data.botId || null,
+            startDate: data.startDate ? new Date(data.startDate) : null,
+            endDate: data.endDate ? new Date(data.endDate) : null
         }
     });
 }
@@ -103,6 +107,8 @@ export async function updateTemplate(id: string, data: {
     targetIds?: string[];
     isActive?: boolean;
     botId?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
 }) {
     const updateData: any = {};
 
@@ -113,6 +119,8 @@ export async function updateTemplate(id: string, data: {
     if (data.targetIds !== undefined) updateData.targetIds = JSON.stringify(data.targetIds);
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.botId !== undefined) updateData.botId = data.botId;
+    if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+    if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
 
     return await prisma.messageTemplate.update({
         where: { id },
