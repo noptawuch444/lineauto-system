@@ -1,11 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
-import { Database, LogOut, Bot, Users } from 'lucide-react';
+import { Database, LogOut, Bot } from 'lucide-react';
 import './App.css';
 import TemplateManagement from './components/TemplateManagement';
 import PublicScheduler from './components/PublicScheduler';
 import LoginPage from './components/LoginPage';
 import BotManagement from './components/BotManagement';
-import AdminDashboard from './components/AdminDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { useState } from 'react';
 
@@ -37,7 +36,7 @@ function App() {
 
 function AdminApp() {
     const { logout } = useAuth();
-    const [activeTab, setActiveTab] = useState<'templates' | 'bots' | 'admin'>('templates');
+    const [activeTab, setActiveTab] = useState<'templates' | 'bots'>('templates');
 
     return (
         <div className="app">
@@ -84,17 +83,10 @@ function AdminApp() {
                         >
                             <Bot size={16} /> จัดการบอทหลายตัว (Multi-Bot)
                         </button>
-                        <button
-                            className={`admin-tab ${activeTab === 'admin' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('admin')}
-                        >
-                            <Users size={16} /> จัดการสิทธิ์ & กลุ่ม
-                        </button>
                     </div>
                     <div className="admin-content">
                         {activeTab === 'templates' && <TemplateManagement />}
                         {activeTab === 'bots' && <BotManagement />}
-                        {activeTab === 'admin' && <AdminDashboard />}
                     </div>
                 </div>
             </div>
