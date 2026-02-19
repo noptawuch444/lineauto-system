@@ -17,14 +17,31 @@ router.get('/template/:publicCode', async (req, res) => {
         if (!template) return res.status(404).json({ error: 'Template not found' });
         if (!template.isActive) return res.status(403).json({ error: 'Template is not active' });
 
-        // Date check: We only block if the template is ALREADY EXPIRED.
+        // Date check with explicit logging
         const now = new Date();
-        if (template.endDate && now > new Date(template.endDate)) {
-            return res.status(403).json({ error: 'Template has expired (Ended: ' + new Date(template.endDate).toLocaleDateString('th-TH') + ')' });
+        const endDate = template.endDate ? new Date(template.endDate) : null;
+
+        console.log(`🔍 Checking Template: ${template.name} (${req.params.publicCode})`);
+        console.log(`⏰ Current: ${now.toISOString()}, EndDate: ${endDate?.toISOString()}`);
+
+        if (endDate && now.getTime() > endDate.getTime()) {
+            return res.status(403).json({
+                error: 'เทมเพลตนี้หมดอายุการใช้งานแล้ว (สิ้นสุดเมื่อ: ' + endDate.toLocaleString('th-TH') + ')'
+            });
         }
 
-        res.json({ id: template.id, name: template.name, description: template.description, category: template.category });
-    } catch (e) { res.status(500).json({ error: 'Failed' }); }
+        res.json({
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            category: template.category,
+            startDate: template.startDate,
+            endDate: template.endDate
+        });
+    } catch (e) {
+        console.error('Template Fetch Error:', e);
+        res.status(500).json({ error: 'Failed' });
+    }
 });
 
 // GET template messages
@@ -85,17 +102,20 @@ router.post('/schedule/:publicCode', async (req, res) => {
 
         // Date check: Is the template already expired?
         const now = new Date();
-        if (template.endDate && now > new Date(template.endDate)) {
+        const tEndDate = template.endDate ? new Date(template.endDate) : null;
+        const tStartDate = template.startDate ? new Date(template.startDate) : null;
+
+        if (tEndDate && now.getTime() > tEndDate.getTime()) {
             return res.status(403).json({ error: 'Template has expired' });
         }
 
         // Check if the scheduled time is within the template's validity period
         const targetTime = new Date(scheduledTime);
-        if (template.startDate && targetTime < new Date(template.startDate)) {
-            return res.status(400).json({ error: 'Cannot schedule before template start date' });
+        if (tStartDate && targetTime.getTime() < tStartDate.getTime()) {
+            return res.status(400).json({ error: 'ไม่สามารถเลือกเวลาส่งก่อนวันเริ่มใช้งานเทมเพลตได้' });
         }
-        if (template.endDate && targetTime > new Date(template.endDate)) {
-            return res.status(400).json({ error: 'Cannot schedule after template end date' });
+        if (tEndDate && targetTime.getTime() > tEndDate.getTime()) {
+            return res.status(400).json({ error: 'ไม่สามารถเลือกเวลาส่งหลังวันสิ้นสุดการใช้งานเทมเพลตได้' });
         }
 
         const finalImageUrls = (imageUrls && Array.isArray(imageUrls)) ? JSON.stringify(imageUrls) : (imageUrl ? JSON.stringify([imageUrl]) : null);

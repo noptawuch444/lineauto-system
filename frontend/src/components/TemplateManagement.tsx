@@ -206,6 +206,14 @@ export default function TemplateManagement() {
         setFormData({ name: '', description: '', category: '', targetType: 'group', targetIds: '', botId: bots[0]?.id || '', startDate: '', endDate: '' });
     };
 
+    const toInputDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+    };
+
     const handleEdit = (template: MessageTemplate) => {
         setIsEditing(true);
         setSelectedTemplate(template);
@@ -225,8 +233,8 @@ export default function TemplateManagement() {
             targetType: template.targetType,
             targetIds: targetIdsStr,
             botId: template.botId || '',
-            startDate: template.startDate ? template.startDate.slice(0, 16) : '',
-            endDate: template.endDate ? template.endDate.slice(0, 16) : ''
+            startDate: toInputDate(template.startDate),
+            endDate: toInputDate(template.endDate)
         });
     };
 
