@@ -1183,3 +1183,14 @@ input[type='datetime-local'] {
 
 input[type='datetime-local']::-webkit-calendar-picker-indicator {
     filter: invert(0.8) sepia(100%) saturate(1000%) hue-rotate(10deg);
+
+/* Section Styling for Dates */
+.adm-section { margin-top: 25px; margin-bottom: 25px; }
+.adm-section-title { font-size: 14px; font-weight: 700; color: var(--adm-gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.adm-section-content.gold-box { background: rgba(201, 168, 76, 0.03); border: 1px solid rgba(201, 168, 76, 0.15); border-radius: 12px; padding: 20px; position: relative; }
+.adm-form-row.no-margin { margin-bottom: 0px; }
+.adm-help-text { font-size: 11px; color: var(--adm-muted); margin-top: 10px; font-style: italic; }
+/* Improve visibility of date pickers in gold box */
+.gold-box .adm-input { background: rgba(0, 0, 0, 0.2); border-color: rgba(201, 168, 76, 0.2); }
+.gold-box .adm-input:focus { border-color: var(--adm-gold); box-shadow: 0 0 15px rgba(201, 168, 76, 0.2); }
+
