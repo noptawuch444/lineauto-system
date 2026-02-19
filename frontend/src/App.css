@@ -68,7 +68,7 @@ body {
    TOP NAVIGATION
    ============================================ */
 .top-nav {
-  height: 80px;
+  height: 96px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -87,9 +87,9 @@ body {
 }
 
 .nav-logo-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1.5px solid var(--primary-dark);
   box-shadow: 0 0 10px rgba(201, 168, 76, 0.1);
@@ -102,7 +102,7 @@ body {
 }
 
 .nav-brand-name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--primary-light);
   letter-spacing: -0.5px;
@@ -153,7 +153,7 @@ body {
 }
 
 .nav-status span {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--success);
   font-weight: 600;
   display: flex;
@@ -333,7 +333,71 @@ body {
     transform: rotate(360deg);
   }
 }
+
 /* RESPONSIVE DESIGN */
-@media (max-width: 1024px) { .top-nav { padding: 0 20px; } .main-content-area { padding: 20px; } }
-@media (max-width: 768px) { .top-nav { height: auto; flex-direction: column; padding: 15px 20px; gap: 15px; } .nav-spacer { display: none; } .nav-status-wrap { width: 100%; justify-content: space-between; } .nav-brand-wrap { width: 100%; justify-content: center; } .main-content-area { padding: 15px; overflow: visible; } .admin-tabs { flex-wrap: wrap; justify-content: center; } .admin-tab { padding: 10px 15px; font-size: 14px; } .admin-content { overflow: visible; } }
-@media (max-width: 480px) { .nav-status { display: none; } .user-profile-badge { width: 100%; justify-content: center; } .nav-brand-name { font-size: 18px; } }
+@media (max-width: 1024px) {
+  .top-nav {
+    padding: 0 20px;
+  }
+
+  .main-content-area {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    height: auto;
+    flex-direction: column;
+    padding: 15px 20px;
+    gap: 15px;
+  }
+
+  .nav-spacer {
+    display: none;
+  }
+
+  .nav-status-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nav-brand-wrap {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .main-content-area {
+    padding: 15px;
+    overflow: visible;
+  }
+
+  .admin-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admin-tab {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+
+  .admin-content {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-status {
+    display: none;
+  }
+
+  .user-profile-badge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-brand-name {
+    font-size: 18px;
+  }
+}
