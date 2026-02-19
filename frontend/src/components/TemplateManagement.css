@@ -54,6 +54,15 @@
     padding: 30px 0;
     position: relative;
     z-index: 5;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.adm-body::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
 }
 
 .adm-container {
@@ -76,112 +85,38 @@
     z-index: 10;
 }
 
-.adm-header-l,
-.adm-header-r {
+.adm-header-l {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 15px;
 }
 
-.adm-logo-wrap {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--adm-border-h);
-    flex-shrink: 0;
-}
-
-.adm-logo-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.adm-brand {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--adm-gold-light);
-}
-
-.adm-brand span {
-    font-size: 11px;
-    font-weight: 700;
+.adm-header-icon {
     color: var(--adm-gold);
-    background: rgba(201, 168, 76, .1);
-    border: 1px solid rgba(201, 168, 76, .25);
-    padding: 3px 8px;
-    border-radius: 4px;
-    margin-left: 8px;
-    vertical-align: middle;
+    filter: drop-shadow(0 0 8px var(--adm-gold-glow));
 }
 
-.adm-header-sub {
-    font-size: 14px;
+.adm-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(to right, var(--adm-gold-light), var(--adm-gold-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.adm-header p {
     color: var(--adm-muted);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 2px;
-}
-
-.adm-header-sub b {
-    color: var(--adm-gold);
-}
-
-.adm-status {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-}
-
-.adm-status small {
-    font-size: 11px;
-    color: var(--adm-muted);
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.adm-status span {
-    font-size: 14px;
-    color: var(--green);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.adm-dot {
-    width: 8px;
-    height: 8px;
-    background: #5ebd72;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #5ebd72;
-    animation: adm-pulse 2s infinite;
-}
-
-@keyframes adm-pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-
-    50% {
-        transform: scale(1.2);
-        opacity: 0.7;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+    font-size: 13px;
+    margin: 2px 0 0 0;
 }
 
 .adm-header-actions {
     display: flex;
     gap: 12px;
 }
+
 
 /* Buttons */
 .adm-btn-primary {

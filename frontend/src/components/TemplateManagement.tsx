@@ -381,30 +381,21 @@ export default function TemplateManagement() {
 
             <header className="adm-header">
                 <div className="adm-header-l">
-                    <div className="adm-logo-wrap"><img src="/logo.jpg" alt="GoldSync" /></div>
+                    <Layers size={24} className="adm-header-icon" />
                     <div>
-                        <div className="adm-brand">GoldSync Admin <span>CONTROL PANEL</span></div>
-                        <div className="adm-header-sub">
-                            <Layers size={14} className="adm-icon-inline" />
-                            จัดการเทมเพลต: <b>{templates.length} รายการ</b>
-                        </div>
+                        <h1>จัดการเทมเพลต</h1>
+                        <p>สร้างและตั้งค่าหน้า Public สำหรับแจ้งเตือนกลุ่มต่างๆ</p>
                     </div>
                 </div>
-                <div className="adm-header-r">
-                    <div className="adm-header-actions">
-                        <button className="adm-btn-outline" onClick={() => setShowGroupCatalog(true)}>
-                            <Database size={18} /> สมุดรายชื่อกลุ่ม
+                <div className="adm-header-actions">
+                    <button className="adm-btn-outline" onClick={() => setShowGroupCatalog(true)}>
+                        <Database size={18} /> สมุดรายชื่อกลุ่ม
+                    </button>
+                    {!isEditing && (
+                        <button className="adm-btn-primary" onClick={handleCreate}>
+                            <Plus size={18} /> สร้างใหม่
                         </button>
-                        {!isEditing && (
-                            <button className="adm-btn-primary" onClick={handleCreate}>
-                                <Plus size={18} /> สร้างใหม่
-                            </button>
-                        )}
-                    </div>
-                    <div className="adm-status">
-                        <small>สถานะแอดมิน</small>
-                        <span><div className="adm-dot" /> ออนไลน์</span>
-                    </div>
+                    )}
                 </div>
             </header>
 
