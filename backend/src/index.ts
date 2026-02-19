@@ -3,6 +3,9 @@ import cors from 'cors';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
+
+// Force global timezone to Bangkok for all date/time operations
+process.env.TZ = 'Asia/Bangkok';
 import messageRoutes from './routes/messages';
 import templateRoutes from './routes/templates';
 import authRoutes from './routes/auth';
