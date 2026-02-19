@@ -379,319 +379,316 @@ export default function TemplateManagement() {
                 <canvas ref={canvasRef} className="adm-canvas" />
             </div>
 
-            <header className="adm-header">
-                <div className="adm-header-l">
-                    <Layers size={24} className="adm-header-icon" />
-                    <div>
-                        <h1>จัดการเทมเพลต</h1>
-                        <p>สร้างและตั้งค่าหน้า Public สำหรับแจ้งเตือนกลุ่มต่างๆ</p>
+            <div className="adm-container">
+                <header className="adm-header">
+                    <div className="adm-header-l">
+                        <Layers size={24} className="adm-header-icon" />
+                        <div>
+                            <h1>จัดการเทมเพลต</h1>
+                            <p>สร้างและตั้งค่าหน้า Public สำหรับแจ้งเตือนกลุ่มต่างๆ</p>
+                        </div>
                     </div>
-                </div>
-                <div className="adm-header-actions">
-                    <button className="adm-btn-outline" onClick={() => setShowGroupCatalog(true)}>
-                        <Database size={18} /> สมุดรายชื่อกลุ่ม
-                    </button>
-                    {!isEditing && (
-                        <button className="adm-btn-primary" onClick={handleCreate}>
-                            <Plus size={18} /> สร้างใหม่
+                    <div className="adm-header-actions">
+                        <button className="adm-btn-outline" onClick={() => setShowGroupCatalog(true)}>
+                            <Database size={18} /> สมุดรายชื่อกลุ่ม
                         </button>
-                    )}
-                </div>
-            </header>
+                        {!isEditing && (
+                            <button className="adm-btn-primary" onClick={handleCreate}>
+                                <Plus size={18} /> สร้างใหม่
+                            </button>
+                        )}
+                    </div>
+                </header>
 
-            <div className="adm-body">
-                <div className="adm-container">
-
-                    {/* Group Catalog Overlay */}
-                    {showGroupCatalog && (
-                        <div className="adm-overlay" onClick={() => setShowGroupCatalog(false)}>
-                            <div className="adm-modal" onClick={e => e.stopPropagation()}>
-                                <div className="adm-modal-head">
-                                    <h3><Database size={20} /> รายชื่อกลุ่มที่บอทพบ</h3>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                        <select
-                                            className="adm-input"
-                                            style={{ width: '150px', fontSize: '12px', height: '32px' }}
-                                            value={formData.botId}
-                                            onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
-                                        >
-                                            <option value="">ทั้งหมด</option>
-                                            {bots.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                        </select>
-                                        <button className="adm-btn-refresh" onClick={() => fetchLineGroups(formData.botId)} title="รีเฟรช">
-                                            <RotateCw size={18} />
-                                        </button>
-                                        <button className="adm-modal-close" onClick={() => setShowGroupCatalog(false)}><X size={20} /></button>
-                                    </div>
+                {/* Group Catalog Overlay */}
+                {showGroupCatalog && (
+                    <div className="adm-overlay" onClick={() => setShowGroupCatalog(false)}>
+                        <div className="adm-modal" onClick={e => e.stopPropagation()}>
+                            <div className="adm-modal-head">
+                                <h3><Database size={20} /> รายชื่อกลุ่มที่บอทพบ</h3>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <select
+                                        className="adm-input"
+                                        style={{ width: '150px', fontSize: '12px', height: '32px' }}
+                                        value={formData.botId}
+                                        onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
+                                    >
+                                        <option value="">ทั้งหมด</option>
+                                        {bots.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                    <button className="adm-btn-refresh" onClick={() => fetchLineGroups(formData.botId)} title="รีเฟรช">
+                                        <RotateCw size={18} />
+                                    </button>
+                                    <button className="adm-modal-close" onClick={() => setShowGroupCatalog(false)}><X size={20} /></button>
                                 </div>
-                                <div className="adm-modal-body">
-                                    <div className="adm-group-list">
-                                        {lineGroups.length === 0 ? (
-                                            <div className="adm-empty-box">
-                                                <AlertTriangle size={32} />
-                                                <p>ไม่พบข้อมูลกลุ่มสำหรับบอทที่เลือก</p>
-                                                <p style={{ fontSize: '12px', opacity: 0.7 }}>กรุณาเชิญบอทเข้ากลุ่ม หรือพิมพ์ <code>!reg</code> ในกลุ่ม</p>
+                            </div>
+                            <div className="adm-modal-body">
+                                <div className="adm-group-list">
+                                    {lineGroups.length === 0 ? (
+                                        <div className="adm-empty-box">
+                                            <AlertTriangle size={32} />
+                                            <p>ไม่พบข้อมูลกลุ่มสำหรับบอทที่เลือก</p>
+                                            <p style={{ fontSize: '12px', opacity: 0.7 }}>กรุณาเชิญบอทเข้ากลุ่ม หรือพิมพ์ <code>!reg</code> ในกลุ่ม</p>
+                                        </div>
+                                    ) : lineGroups.map(g => (
+                                        <div key={g.groupId} className="adm-group-item">
+                                            <div className="adm-group-icon">
+                                                {g.pictureUrl ? <img src={g.pictureUrl} alt="" /> : <span>{g.groupName?.[0] || 'G'}</span>}
                                             </div>
-                                        ) : lineGroups.map(g => (
-                                            <div key={g.groupId} className="adm-group-item">
-                                                <div className="adm-group-icon">
-                                                    {g.pictureUrl ? <img src={g.pictureUrl} alt="" /> : <span>{g.groupName?.[0] || 'G'}</span>}
+                                            <div className="adm-group-info">
+                                                <strong>{g.groupName || 'Unknown Name'}</strong>
+                                                <div className="adm-group-bot">
+                                                    <Bot size={10} /> {g.bot?.name || 'บอทเริ่มต้น'}
                                                 </div>
-                                                <div className="adm-group-info">
-                                                    <strong>{g.groupName || 'Unknown Name'}</strong>
-                                                    <div className="adm-group-bot">
-                                                        <Bot size={10} /> {g.bot?.name || 'บอทเริ่มต้น'}
-                                                    </div>
-                                                    <code>{g.groupId}</code>
-                                                </div>
-                                                <button className="adm-btn-copy-id" onClick={() => {
-                                                    navigator.clipboard.writeText(g.groupId);
-                                                    showToast('คัดลอก ID แล้ว', 'ok');
-                                                }}>
-                                                    <Copy size={14} />
-                                                </button>
+                                                <code>{g.groupId}</code>
                                             </div>
-                                        ))}
-                                    </div>
+                                            <button className="adm-btn-copy-id" onClick={() => {
+                                                navigator.clipboard.writeText(g.groupId);
+                                                showToast('คัดลอก ID แล้ว', 'ok');
+                                            }}>
+                                                <Copy size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {isEditing ? (
-                        <div className="adm-panel fade-in">
-                            <div className="adm-panel-head">
-                                <div className="adm-panel-title">
-                                    {selectedTemplate ? <Edit3 size={18} /> : <Plus size={18} />}
-                                    <span>{selectedTemplate ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่'}</span>
+                {isEditing ? (
+                    <div className="adm-panel fade-in">
+                        <div className="adm-panel-head">
+                            <div className="adm-panel-title">
+                                {selectedTemplate ? <Edit3 size={18} /> : <Plus size={18} />}
+                                <span>{selectedTemplate ? 'แก้ไขเทมเพลต' : 'สร้างเทมเพลตใหม่'}</span>
+                            </div>
+                            <button className="adm-btn-ghost" onClick={() => setIsEditing(false)}>
+                                <X size={18} /> ปิด
+                            </button>
+                        </div>
+
+                        <div className="adm-form">
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-2">
+                                    <label>ชื่อเทมเพลต*</label>
+                                    <input
+                                        type="text"
+                                        className="adm-input"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="เช่น แจ้งผลหวยฮานอย"
+                                    />
                                 </div>
-                                <button className="adm-btn-ghost" onClick={() => setIsEditing(false)}>
-                                    <X size={18} /> ปิด
+                                <div className="adm-fg flex-1">
+                                    <label>เลือกบอทที่ใช้ส่ง*</label>
+                                    <select
+                                        className="adm-input"
+                                        value={formData.botId}
+                                        onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
+                                    >
+                                        <option value="">-- ใช้บอทเริ่มต้น (Env) --</option>
+                                        {bots.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label>คำอธิบาย (สั้นๆ)</label>
+                                    <input
+                                        type="text"
+                                        className="adm-input"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="เช่น สำหรับทีมงานแอดมินส่งผลหวยรายวัน"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label>Target IDs* (แยกด้วย comma)</label>
+                                    <textarea
+                                        className="adm-ta"
+                                        value={formData.targetIds}
+                                        onChange={(e) => setFormData({ ...formData, targetIds: e.target.value })}
+                                        placeholder="Cxxxxxxxxxxxx, Cyyyyyyyyyyyy"
+                                        rows={2}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันเริ่มต้นการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันสิ้นสุดการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.endDate}
+                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="adm-form-footer">
+                                <button className="adm-btn-save" onClick={handleSave}>
+                                    <Save size={18} /> บันทึกข้อมูล
+                                </button>
+                                <button className="adm-btn-clear" onClick={() => setIsEditing(false)}>
+                                    ยกเลิก
                                 </button>
                             </div>
-
-                            <div className="adm-form">
-                                <div className="adm-form-row">
-                                    <div className="adm-fg flex-2">
-                                        <label>ชื่อเทมเพลต*</label>
-                                        <input
-                                            type="text"
-                                            className="adm-input"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="เช่น แจ้งผลหวยฮานอย"
-                                        />
-                                    </div>
-                                    <div className="adm-fg flex-1">
-                                        <label>เลือกบอทที่ใช้ส่ง*</label>
-                                        <select
-                                            className="adm-input"
-                                            value={formData.botId}
-                                            onChange={(e) => setFormData({ ...formData, botId: e.target.value })}
-                                        >
-                                            <option value="">-- ใช้บอทเริ่มต้น (Env) --</option>
-                                            {bots.map(b => (
-                                                <option key={b.id} value={b.id}>{b.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="adm-form-row">
-                                    <div className="adm-fg flex-1">
-                                        <label>คำอธิบาย (สั้นๆ)</label>
-                                        <input
-                                            type="text"
-                                            className="adm-input"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="เช่น สำหรับทีมงานแอดมินส่งผลหวยรายวัน"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="adm-form-row">
-                                    <div className="adm-fg flex-1">
-                                        <label>Target IDs* (แยกด้วย comma)</label>
-                                        <textarea
-                                            className="adm-ta"
-                                            value={formData.targetIds}
-                                            onChange={(e) => setFormData({ ...formData, targetIds: e.target.value })}
-                                            placeholder="Cxxxxxxxxxxxx, Cyyyyyyyyyyyy"
-                                            rows={2}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="adm-form-row">
-                                    <div className="adm-fg flex-1">
-                                        <label><Calendar size={14} /> วันเริ่มต้นการใช้งาน</label>
-                                        <input
-                                            type="datetime-local"
-                                            className="adm-input"
-                                            value={formData.startDate}
-                                            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="adm-fg flex-1">
-                                        <label><Calendar size={14} /> วันสิ้นสุดการใช้งาน</label>
-                                        <input
-                                            type="datetime-local"
-                                            className="adm-input"
-                                            value={formData.endDate}
-                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="adm-form-footer">
-                                    <button className="adm-btn-save" onClick={handleSave}>
-                                        <Save size={18} /> บันทึกข้อมูล
-                                    </button>
-                                    <button className="adm-btn-clear" onClick={() => setIsEditing(false)}>
-                                        ยกเลิก
-                                    </button>
-                                </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="adm-grid">
+                        {templates.length === 0 ? (
+                            <div className="adm-empty">
+                                <AlertTriangle size={48} />
+                                <p>ไม่พบเทมเพลต กรุณาสร้างจากปุ่มด่านบน</p>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="adm-grid">
-                            {templates.length === 0 ? (
-                                <div className="adm-empty">
-                                    <AlertTriangle size={48} />
-                                    <p>ไม่พบเทมเพลต กรุณาสร้างจากปุ่มด่านบน</p>
-                                </div>
-                            ) : memoizedTemplates.map(template => {
-                                const ids = template.parsedIds;
+                        ) : memoizedTemplates.map(template => {
+                            const ids = template.parsedIds;
 
-                                return (
-                                    <div key={template.id} className={`adm-card ${!template.isActive ? 'adm-inactive' : ''}`}>
-                                        <div className="adm-card-head">
-                                            <div className="adm-card-info">
-                                                <span className={`adm-badge ${template.category || 'default'}`}>
-                                                    {template.category === 'lottery' ? 'หวย' : template.category === 'news' ? 'ข่าว' : template.category === 'promotion' ? 'โปร' : 'ทั่วไป'}
-                                                </span>
-                                                <h3>{template.name}</h3>
-                                            </div>
-                                            <div className="adm-card-toggle" onClick={() => handleToggleStatus(template.id)}>
-                                                <div className={`adm-toggle-pill ${template.isActive ? 'on' : ''}`}>
-                                                    <Power size={12} />
-                                                </div>
-                                            </div>
+                            return (
+                                <div key={template.id} className={`adm-card ${!template.isActive ? 'adm-inactive' : ''}`}>
+                                    <div className="adm-card-head">
+                                        <div className="adm-card-info">
+                                            <span className={`adm-badge ${template.category || 'default'}`}>
+                                                {template.category === 'lottery' ? 'หวย' : template.category === 'news' ? 'ข่าว' : template.category === 'promotion' ? 'โปร' : 'ทั่วไป'}
+                                            </span>
+                                            <h3>{template.name}</h3>
                                         </div>
-
-                                        <p className="adm-card-desc">{template.description || 'ไม่มีคำอธิบาย'}</p>
-
-                                        <div className="adm-card-meta">
-                                            <div className="adm-meta-item">
-                                                <Target size={14} />
-                                                <span>{template.targetType}</span>
+                                        <div className="adm-card-toggle" onClick={() => handleToggleStatus(template.id)}>
+                                            <div className={`adm-toggle-pill ${template.isActive ? 'on' : ''}`}>
+                                                <Power size={12} />
                                             </div>
-
-                                            <div className="adm-meta-tags">
-                                                {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
-                                                {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
-                                            </div>
-                                        </div>
-
-                                        <div className="adm-card-bot">
-                                            <Bot size={12} className="adm-bot-icon" />
-                                            <span>บอท: {template.bot?.name || 'บอทเริ่มต้น'}</span>
-                                        </div>
-
-                                        <div className="adm-inline-dates">
-                                            {activeQuickDateId === template.id ? (
-                                                <div className="adm-quick-edit">
-                                                    <div className="adm-quick-inputs">
-                                                        <div className="adm-q-field">
-                                                            <label>เริ่มต้น</label>
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={quickDateData.startDate}
-                                                                onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
-                                                                className="adm-q-input"
-                                                            />
-                                                        </div>
-                                                        <div className="adm-q-field">
-                                                            <label>สิ้นสุด</label>
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={quickDateData.endDate}
-                                                                onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
-                                                                className="adm-q-input"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="adm-quick-btns">
-                                                        <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึกข้อมูล"><CheckCircle2 size={14} /></button>
-                                                        <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
-                                                    </div>
-                                                </div>
-                                            ) : (() => {
-                                                const now = new Date();
-                                                const start = template.startDate ? new Date(template.startDate) : null;
-                                                const end = template.endDate ? new Date(template.endDate) : null;
-                                                let status = { label: 'ไม่จำกัดเวลา', class: 'gray' };
-
-                                                if (start || end) {
-                                                    if (start && now < start) status = { label: 'เร็วๆ นี้', class: 'warn' };
-                                                    else if (end && now > end) status = { label: 'หมดอายุ', class: 'err' };
-                                                    else status = { label: 'ใช้งานอยู่', class: 'ok' };
-                                                }
-
-                                                return (
-                                                    <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อแก้ไขช่วงเวลา">
-                                                        <div className={`adm-status-dot ${status.class}`} />
-                                                        <div className="adm-q-vals">
-                                                            <span className="adm-q-status">{status.label}</span>
-                                                            <span className="adm-q-range">
-                                                                {!start && !end ? (
-                                                                    'ยังไม่ได้กำหนดระยะเวลา'
-                                                                ) : (
-                                                                    <>
-                                                                        {start ? start.toLocaleDateString('th-TH') : '...'} -
-                                                                        {end ? end.toLocaleDateString('th-TH') : '...'}
-                                                                    </>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        <Clock size={12} className="adm-q-icon" />
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-
-                                        <div className="adm-link-box">
-                                            <div className="adm-link-label">
-                                                <ExternalLink size={12} /> Public Link
-                                            </div>
-                                            <div className="adm-link-row">
-                                                <code>.../schedule/{template.publicCode}</code>
-                                                <div className="adm-link-actions">
-                                                    <button title="คัดลอกลิงก์" onClick={() => copyPublicLink(template.publicCode)}>
-                                                        <Copy size={13} />
-                                                    </button>
-                                                    <button title="เปิดหน้าเว็บ" onClick={() => openPublicLink(template.publicCode)}>
-                                                        <ExternalLink size={13} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="adm-card-footer">
-                                            <button className="adm-btn-edit" onClick={() => handleEdit(template)}>
-                                                <Edit3 size={14} /> แก้ไข
-                                            </button>
-                                            <button className="adm-btn-del" onClick={() => handleDelete(template.id)}>
-                                                <Trash2 size={14} />
-                                            </button>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+
+                                    <p className="adm-card-desc">{template.description || 'ไม่มีคำอธิบาย'}</p>
+
+                                    <div className="adm-card-meta">
+                                        <div className="adm-meta-item">
+                                            <Target size={14} />
+                                            <span>{template.targetType}</span>
+                                        </div>
+
+                                        <div className="adm-meta-tags">
+                                            {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
+                                            {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
+                                        </div>
+                                    </div>
+
+                                    <div className="adm-card-bot">
+                                        <Bot size={12} className="adm-bot-icon" />
+                                        <span>บอท: {template.bot?.name || 'บอทเริ่มต้น'}</span>
+                                    </div>
+
+                                    <div className="adm-inline-dates">
+                                        {activeQuickDateId === template.id ? (
+                                            <div className="adm-quick-edit">
+                                                <div className="adm-quick-inputs">
+                                                    <div className="adm-q-field">
+                                                        <label>เริ่มต้น</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.startDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                    </div>
+                                                    <div className="adm-q-field">
+                                                        <label>สิ้นสุด</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.endDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="adm-quick-btns">
+                                                    <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึกข้อมูล"><CheckCircle2 size={14} /></button>
+                                                    <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
+                                                </div>
+                                            </div>
+                                        ) : (() => {
+                                            const now = new Date();
+                                            const start = template.startDate ? new Date(template.startDate) : null;
+                                            const end = template.endDate ? new Date(template.endDate) : null;
+                                            let status = { label: 'ไม่จำกัดเวลา', class: 'gray' };
+
+                                            if (start || end) {
+                                                if (start && now < start) status = { label: 'เร็วๆ นี้', class: 'warn' };
+                                                else if (end && now > end) status = { label: 'หมดอายุ', class: 'err' };
+                                                else status = { label: 'ใช้งานอยู่', class: 'ok' };
+                                            }
+
+                                            return (
+                                                <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อแก้ไขช่วงเวลา">
+                                                    <div className={`adm-status-dot ${status.class}`} />
+                                                    <div className="adm-q-vals">
+                                                        <span className="adm-q-status">{status.label}</span>
+                                                        <span className="adm-q-range">
+                                                            {!start && !end ? (
+                                                                'ยังไม่ได้กำหนดระยะเวลา'
+                                                            ) : (
+                                                                <>
+                                                                    {start ? start.toLocaleDateString('th-TH') : '...'} -
+                                                                    {end ? end.toLocaleDateString('th-TH') : '...'}
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <Clock size={12} className="adm-q-icon" />
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div className="adm-link-box">
+                                        <div className="adm-link-label">
+                                            <ExternalLink size={12} /> Public Link
+                                        </div>
+                                        <div className="adm-link-row">
+                                            <code>.../schedule/{template.publicCode}</code>
+                                            <div className="adm-link-actions">
+                                                <button title="คัดลอกลิงก์" onClick={() => copyPublicLink(template.publicCode)}>
+                                                    <Copy size={13} />
+                                                </button>
+                                                <button title="เปิดหน้าเว็บ" onClick={() => openPublicLink(template.publicCode)}>
+                                                    <ExternalLink size={13} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="adm-card-footer">
+                                        <button className="adm-btn-edit" onClick={() => handleEdit(template)}>
+                                            <Edit3 size={14} /> แก้ไข
+                                        </button>
+                                        <button className="adm-btn-del" onClick={() => handleDelete(template.id)}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

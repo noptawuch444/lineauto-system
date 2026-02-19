@@ -20,14 +20,12 @@
 }
 
 .adm {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    min-height: 100%;
     background: var(--adm-bg);
     color: var(--adm-white);
     position: relative;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    padding: 30px;
     font-family: 'Prompt', sans-serif;
 }
 
@@ -48,41 +46,20 @@
     opacity: 0.6;
 }
 
-.adm-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 30px 0;
-    position: relative;
-    z-index: 5;
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* IE/Edge */
-}
-
-.adm-body::-webkit-scrollbar {
-    display: none;
-    /* Chrome/Safari */
-}
 
 .adm-container {
+    position: relative;
+    z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 30px;
-    width: 100%;
 }
 
-/* Header — Match Public Link (96px height) */
+/* Header */
 .adm-header {
-    height: 96px;
-    flex-shrink: 0;
-    background: var(--adm-surface);
-    border-bottom: 1px solid var(--adm-border);
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0 36px;
-    z-index: 10;
+    align-items: center;
+    margin-bottom: 40px;
 }
 
 .adm-header-l {
@@ -97,7 +74,7 @@
 }
 
 .adm-header h1 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 700;
     margin: 0;
     background: linear-gradient(to right, var(--adm-gold-light), var(--adm-gold-dark));
@@ -108,7 +85,7 @@
 
 .adm-header p {
     color: var(--adm-muted);
-    font-size: 13px;
+    font-size: 14px;
     margin: 2px 0 0 0;
 }
 
