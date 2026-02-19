@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, category, targetType, targetIds, botId } = req.body;
+        const { name, description, category, targetType, targetIds, botId, startDate, endDate } = req.body;
 
         const missing = [];
         if (!name) missing.push('name');
@@ -37,7 +37,9 @@ router.post('/', async (req, res) => {
             category,
             targetType,
             targetIds,
-            botId
+            botId,
+            startDate,
+            endDate
         });
 
         res.status(201).json(template);
@@ -52,7 +54,7 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
     try {
-        const { name, description, category, targetType, targetIds, isActive, botId } = req.body;
+        const { name, description, category, targetType, targetIds, isActive, botId, startDate, endDate } = req.body;
 
         const template = await templateService.updateTemplate(req.params.id, {
             name,
@@ -61,7 +63,9 @@ router.put('/:id', async (req, res) => {
             targetType,
             targetIds,
             isActive,
-            botId
+            botId,
+            startDate,
+            endDate
         });
 
         res.json(template);
