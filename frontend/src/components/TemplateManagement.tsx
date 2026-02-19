@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Plus, Edit3, Trash2, Power, Copy, ExternalLink,
     Save, X, Layers, Target, Loader2, AlertTriangle,
-    CheckCircle2, XCircle, Database, RotateCw, Bot, Calendar
+    CheckCircle2, XCircle, Database, RotateCw, Bot, Calendar, Clock
 } from 'lucide-react';
 import './TemplateManagement.css';
 
@@ -617,40 +617,62 @@ export default function TemplateManagement() {
                                             {activeQuickDateId === template.id ? (
                                                 <div className="adm-quick-edit">
                                                     <div className="adm-quick-inputs">
-                                                        <input
-                                                            type="datetime-local"
-                                                            value={quickDateData.startDate}
-                                                            onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
-                                                            className="adm-q-input"
-                                                        />
-                                                        <input
-                                                            type="datetime-local"
-                                                            value={quickDateData.endDate}
-                                                            onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
-                                                            className="adm-q-input"
-                                                        />
+                                                        <div className="adm-q-field">
+                                                            <label>เริ่มต้น</label>
+                                                            <input
+                                                                type="datetime-local"
+                                                                value={quickDateData.startDate}
+                                                                onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
+                                                                className="adm-q-input"
+                                                            />
+                                                        </div>
+                                                        <div className="adm-q-field">
+                                                            <label>สิ้นสุด</label>
+                                                            <input
+                                                                type="datetime-local"
+                                                                value={quickDateData.endDate}
+                                                                onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
+                                                                className="adm-q-input"
+                                                            />
+                                                        </div>
                                                     </div>
                                                     <div className="adm-quick-btns">
-                                                        <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึก"><CheckCircle2 size={14} /></button>
+                                                        <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึกข้อมูล"><CheckCircle2 size={14} /></button>
                                                         <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อตั้งค่าช่วงเวลา">
-                                                    <Calendar size={14} />
-                                                    <span className="adm-q-text">
-                                                        {!template.startDate && !template.endDate ? (
-                                                            'ตั้งค่าช่วงเวลาการใช้งาน'
-                                                        ) : (
-                                                            <>
-                                                                {template.startDate ? new Date(template.startDate).toLocaleDateString('th-TH') : '...'} -
-                                                                {template.endDate ? new Date(template.endDate).toLocaleDateString('th-TH') : '...'}
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                    <Edit3 size={11} className="adm-q-icon" />
-                                                </div>
-                                            )}
+                                            ) : (() => {
+                                                const now = new Date();
+                                                const start = template.startDate ? new Date(template.startDate) : null;
+                                                const end = template.endDate ? new Date(template.endDate) : null;
+                                                let status = { label: 'ไม่จำกัดเวลา', class: 'gray' };
+
+                                                if (start || end) {
+                                                    if (start && now < start) status = { label: 'เร็วๆ นี้', class: 'warn' };
+                                                    else if (end && now > end) status = { label: 'หมดอายุ', class: 'err' };
+                                                    else status = { label: 'ใช้งานอยู่', class: 'ok' };
+                                                }
+
+                                                return (
+                                                    <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อแก้ไขช่วงเวลา">
+                                                        <div className={`adm-status-dot ${status.class}`} />
+                                                        <div className="adm-q-vals">
+                                                            <span className="adm-q-status">{status.label}</span>
+                                                            <span className="adm-q-range">
+                                                                {!start && !end ? (
+                                                                    'ยังไม่ได้กำหนดระยะเวลา'
+                                                                ) : (
+                                                                    <>
+                                                                        {start ? start.toLocaleDateString('th-TH') : '...'} -
+                                                                        {end ? end.toLocaleDateString('th-TH') : '...'}
+                                                                    </>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <Clock size={12} className="adm-q-icon" />
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         <div className="adm-meta-tags">

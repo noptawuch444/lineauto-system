@@ -893,67 +893,131 @@ select.adm-input option {
 .adm-quick-display {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    background: rgba(255, 255, 255, 0.03);
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--adm-border);
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
     overflow: hidden;
 }
 
 .adm-quick-display:hover {
-    background: rgba(201, 168, 76, 0.08);
-    border-color: var(--adm-gold-glow);
+    background: rgba(201, 168, 76, 0.06);
+    border-color: rgba(201, 168, 76, 0.3);
+    transform: translateY(-1px);
 }
 
-.adm-q-text {
+.adm-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.adm-status-dot.ok {
+    color: #5ebd72;
+    background: #5ebd72;
+}
+
+.adm-status-dot.warn {
+    color: #f3cf8a;
+    background: #f3cf8a;
+}
+
+.adm-status-dot.err {
+    color: #e05555;
+    background: #e05555;
+}
+
+.adm-status-dot.gray {
+    color: #5a4e38;
+    background: #5a4e38;
+}
+
+.adm-q-vals {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.adm-q-status {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--adm-muted);
+}
+
+.adm-q-range {
     font-size: 11px;
+    font-weight: 500;
     color: var(--adm-gold-light);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 500;
 }
 
 .adm-q-icon {
     margin-left: auto;
-    color: var(--adm-dim);
-    opacity: 0;
-    transition: opacity 0.2s;
+    color: var(--adm-muted);
+    opacity: 0.4;
+    transition: transform 0.3s;
 }
 
 .adm-quick-display:hover .adm-q-icon {
+    color: var(--adm-gold);
+    transform: rotate(15deg);
     opacity: 1;
 }
 
 .adm-quick-edit {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 4px 8px;
-    border-radius: 10px;
+    gap: 12px;
+    background: var(--adm-surface-2);
+    padding: 8px 12px;
+    border-radius: 14px;
     border: 1px solid var(--adm-gold-glow);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     animation: fadeIn 0.2s ease-out;
 }
 
 .adm-quick-inputs {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     flex: 1;
+}
+
+.adm-q-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.adm-q-field label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--adm-dim);
+    text-transform: uppercase;
+    width: 35px;
+    flex-shrink: 0;
 }
 
 .adm-q-input {
     background: #000;
     border: 1px solid var(--adm-border);
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--adm-white);
     font-size: 10px;
-    padding: 2px 4px;
-    height: 22px;
+    padding: 4px 8px;
+    height: 24px;
+    width: 100%;
     font-family: 'Prompt', sans-serif;
 }
 
@@ -965,13 +1029,13 @@ select.adm-input option {
 .adm-quick-btns {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .adm-q-btn {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     border: none;
     display: flex;
     align-items: center;
@@ -983,6 +1047,7 @@ select.adm-input option {
 .adm-q-btn.ok {
     background: var(--adm-gold);
     color: #000;
+    box-shadow: 0 4px 10px rgba(201, 168, 76, 0.2);
 }
 
 .adm-q-btn.cancel {
@@ -992,8 +1057,8 @@ select.adm-input option {
 }
 
 .adm-q-btn:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
+    transform: scale(1.1);
+    filter: brightness(1.2);
 }
 
 /* Responsive fix for card meta */
