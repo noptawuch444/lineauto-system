@@ -613,68 +613,6 @@ export default function TemplateManagement() {
                                             <span>{template.targetType}</span>
                                         </div>
 
-                                        <div className="adm-inline-dates">
-                                            {activeQuickDateId === template.id ? (
-                                                <div className="adm-quick-edit">
-                                                    <div className="adm-quick-inputs">
-                                                        <div className="adm-q-field">
-                                                            <label>เริ่มต้น</label>
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={quickDateData.startDate}
-                                                                onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
-                                                                className="adm-q-input"
-                                                            />
-                                                        </div>
-                                                        <div className="adm-q-field">
-                                                            <label>สิ้นสุด</label>
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={quickDateData.endDate}
-                                                                onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
-                                                                className="adm-q-input"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="adm-quick-btns">
-                                                        <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึกข้อมูล"><CheckCircle2 size={14} /></button>
-                                                        <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
-                                                    </div>
-                                                </div>
-                                            ) : (() => {
-                                                const now = new Date();
-                                                const start = template.startDate ? new Date(template.startDate) : null;
-                                                const end = template.endDate ? new Date(template.endDate) : null;
-                                                let status = { label: 'ไม่จำกัดเวลา', class: 'gray' };
-
-                                                if (start || end) {
-                                                    if (start && now < start) status = { label: 'เร็วๆ นี้', class: 'warn' };
-                                                    else if (end && now > end) status = { label: 'หมดอายุ', class: 'err' };
-                                                    else status = { label: 'ใช้งานอยู่', class: 'ok' };
-                                                }
-
-                                                return (
-                                                    <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อแก้ไขช่วงเวลา">
-                                                        <div className={`adm-status-dot ${status.class}`} />
-                                                        <div className="adm-q-vals">
-                                                            <span className="adm-q-status">{status.label}</span>
-                                                            <span className="adm-q-range">
-                                                                {!start && !end ? (
-                                                                    'ยังไม่ได้กำหนดระยะเวลา'
-                                                                ) : (
-                                                                    <>
-                                                                        {start ? start.toLocaleDateString('th-TH') : '...'} -
-                                                                        {end ? end.toLocaleDateString('th-TH') : '...'}
-                                                                    </>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        <Clock size={12} className="adm-q-icon" />
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-
                                         <div className="adm-meta-tags">
                                             {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
                                             {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
@@ -684,6 +622,68 @@ export default function TemplateManagement() {
                                     <div className="adm-card-bot">
                                         <Bot size={12} className="adm-bot-icon" />
                                         <span>บอท: {template.bot?.name || 'บอทเริ่มต้น'}</span>
+                                    </div>
+
+                                    <div className="adm-inline-dates">
+                                        {activeQuickDateId === template.id ? (
+                                            <div className="adm-quick-edit">
+                                                <div className="adm-quick-inputs">
+                                                    <div className="adm-q-field">
+                                                        <label>เริ่มต้น</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.startDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                    </div>
+                                                    <div className="adm-q-field">
+                                                        <label>สิ้นสุด</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.endDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="adm-quick-btns">
+                                                    <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึกข้อมูล"><CheckCircle2 size={14} /></button>
+                                                    <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
+                                                </div>
+                                            </div>
+                                        ) : (() => {
+                                            const now = new Date();
+                                            const start = template.startDate ? new Date(template.startDate) : null;
+                                            const end = template.endDate ? new Date(template.endDate) : null;
+                                            let status = { label: 'ไม่จำกัดเวลา', class: 'gray' };
+
+                                            if (start || end) {
+                                                if (start && now < start) status = { label: 'เร็วๆ นี้', class: 'warn' };
+                                                else if (end && now > end) status = { label: 'หมดอายุ', class: 'err' };
+                                                else status = { label: 'ใช้งานอยู่', class: 'ok' };
+                                            }
+
+                                            return (
+                                                <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อแก้ไขช่วงเวลา">
+                                                    <div className={`adm-status-dot ${status.class}`} />
+                                                    <div className="adm-q-vals">
+                                                        <span className="adm-q-status">{status.label}</span>
+                                                        <span className="adm-q-range">
+                                                            {!start && !end ? (
+                                                                'ยังไม่ได้กำหนดระยะเวลา'
+                                                            ) : (
+                                                                <>
+                                                                    {start ? start.toLocaleDateString('th-TH') : '...'} -
+                                                                    {end ? end.toLocaleDateString('th-TH') : '...'}
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <Clock size={12} className="adm-q-icon" />
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="adm-link-box">
@@ -717,6 +717,6 @@ export default function TemplateManagement() {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }
