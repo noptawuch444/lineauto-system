@@ -125,23 +125,26 @@ export default function BotManagement() {
 
     if (loading && bots.length === 0) {
         return (
-            <div className="bm-loading">
-                <Loader2 className="bm-spin" />
-                <span>กำลังโหลดข้อมูลบอท...</span>
+            <div className="bm-loading-overlay">
+                <Loader2 className="bm-spin-gold" />
+                <p>กำลังโหลดระบบ Multi-Bot...</p>
             </div>
         );
     }
 
     return (
         <div className="bm-container">
-            <div className="bm-header">
-                <div className="bm-title">
-                    <Bot className="bm-icon-gold" />
-                    <h1>จัดการบอทหลายตัว (Multi-Bot)</h1>
+            <div className="bm-page-header">
+                <div className="bm-header-content">
+                    <Bot className="bm-icon-gold" size={32} />
+                    <div className="bm-title-group">
+                        <h1>จัดการบอทหลายตัว (Multi-Bot)</h1>
+                        <p>เชื่อมต่อและตั้งค่า LINE Official Account ของคุณที่นี่</p>
+                    </div>
                 </div>
                 {!isAdding && (
                     <button className="bm-add-btn" onClick={() => setIsAdding(true)}>
-                        <Plus size={18} /> เพิ่มบอทตัวใหม่
+                        <Plus size={18} /> เพิ่มบอทใหม่
                     </button>
                 )}
             </div>
