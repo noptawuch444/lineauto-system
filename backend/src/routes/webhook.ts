@@ -6,98 +6,149 @@ import bodyParser from 'body-parser';
 
 const router = express.Router();
 
-/**
- * GET WEBHOOK (For Health Checks / Pings)
- */
-router.get('/', (req, res) => {
-    res.status(200).send('Webhook is active (GET)');
+// ── Bot cache to avoid DB query on every webhook call ──
+type BotRecord = { id: string; name: string; channelAccessToken: string; channelSecret: string | null; isActive: boolean };
+let botCache: BotRecord[] = [];
+let botCacheExpiry = 0;
+const BOT_CACHE_TTL_MS = 60_000; // 60 seconds
+
+async function getActiveBots(): Promise<BotRecord[]> {
+    const now = Date.now();
+    if (botCache.length > 0 && now < botCacheExpiry) return botCache;
+
+    const bots = await prisma.lineBot.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, channelAccessToken: true, channelSecret: true, isActive: true }
+    });
+
+    botCache = bots;
+    botCacheExpiry = now + BOT_CACHE_TTL_MS;
+    return bots;
+}
+
+/** Call this when a bot is updated/deleted to force cache refresh */
+export function invalidateBotCache() {
+    botCache = [];
+    botCacheExpiry = 0;
+}
+
+// ── Health Check ──
+router.get('/', (_req, res) => {
+    res.status(200).send('Webhook active');
 });
 
-/**
- * SMART WEBHOOK (ROOT)
- */
+// ── Per-Bot Webhook: POST /webhook/:botId ──
+router.post('/:botId', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+    const { botId } = req.params;
+    const signature = req.headers['x-line-signature'] as string;
+    const rawBody = req.body.toString('utf8');
+
+    // Respond 200 immediately (LINE requires < 1s)
+    res.status(200).send('OK');
+
+    (async () => {
+        try {
+            const bot = await prisma.lineBot.findUnique({
+                where: { id: botId, isActive: true },
+                select: { id: true, name: true, channelAccessToken: true, channelSecret: true, isActive: true }
+            });
+
+            if (!bot) return;
+
+            // Validate signature when secret is set
+            if (signature && bot.channelSecret) {
+                const valid = validateSignature(rawBody, bot.channelSecret.trim(), signature);
+                if (!valid) {
+                    console.warn(`[WEBHOOK] Invalid signature for bot ${botId}`);
+                    return;
+                }
+            }
+
+            const parsedBody = JSON.parse(rawBody);
+            const events: WebhookEvent[] = parsedBody.events || [];
+
+            if (events.length === 0) return;
+
+            const client = new Client({
+                channelAccessToken: bot.channelAccessToken.trim(),
+                channelSecret: bot.channelSecret?.trim() || undefined
+            });
+
+            for (const event of events) {
+                await handleEvent(event, client, bot.id, bot.name);
+            }
+        } catch (err: any) {
+            console.error(`[WEBHOOK /${botId}] Error:`, err.message);
+        }
+    })();
+});
+
+// ── Root/Smart Webhook: POST /webhook ──
 router.post('/', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
     const signature = req.headers['x-line-signature'] as string;
     const rawBody = req.body.toString('utf8');
 
-    try {
-        const parsedBody = JSON.parse(rawBody);
-        const events: WebhookEvent[] = parsedBody.events || [];
+    // Respond 200 immediately
+    res.status(200).send('OK');
 
-        // 1. ดึงข้อมูลบอททั้งหมด (และลบช่องว่างเผื่อไว้)
-        const allBots = await prisma.lineBot.findMany({ where: { isActive: true } });
+    (async () => {
+        try {
+            const allBots = await getActiveBots();
+            let targetBot: BotRecord | null = null;
 
-        // 2. ค้นหาบอทที่ส่งมา
-        let targetBot = null;
-
-        // วิธีที่ 1: เช็คจาก Signature (มาตรฐาน)
-        if (signature) {
-            for (const bot of allBots) {
-                const secret = bot.channelSecret?.trim();
-                if (secret && validateSignature(rawBody, secret, signature)) {
-                    targetBot = bot;
-                    break;
+            // Match by signature (most accurate)
+            if (signature && allBots.length > 0) {
+                for (const bot of allBots) {
+                    const secret = bot.channelSecret?.trim();
+                    if (secret && validateSignature(rawBody, secret, signature)) {
+                        targetBot = bot;
+                        break;
+                    }
                 }
             }
+
+            // Fallback: env secret match or first active bot
+            if (!targetBot && allBots.length > 0) {
+                targetBot = allBots.find(b =>
+                    b.channelSecret?.trim() === process.env.LINE_CHANNEL_SECRET?.trim()
+                ) ?? allBots[0];
+            }
+
+            if (!targetBot) return;
+
+            const parsedBody = JSON.parse(rawBody);
+            const events: WebhookEvent[] = parsedBody.events || [];
+
+            if (events.length === 0) return;
+
+            const client = new Client({
+                channelAccessToken: targetBot.channelAccessToken.trim(),
+                channelSecret: targetBot.channelSecret?.trim() || undefined
+            });
+
+            for (const event of events) {
+                await handleEvent(event, client, targetBot.id, targetBot.name);
+            }
+        } catch (err: any) {
+            console.error('[WEBHOOK ROOT] Error:', err.message);
         }
-
-        // วิธีที่ 2: หากเป็น Verify (ไม่มี Signature) หรือเช็คไม่ผ่านในช่วงแรก
-        // ลองหาจาก Event Source (ถ้ามี userId หรือข้อมูลอื่นที่ระบุตัวตนได้)
-        if (!targetBot && events.length > 0) {
-            // ในกรณีที่ Signature ไม่ผ่าน เราจะใช้บอทตัวแรกเป็นค่าเริ่มต้น หรือตัวที่ใกล้เคียง
-            // เพื่อให้รายชื่อกลุ่ม "ขึ้น" มาก่อนให้คุณเห็น
-            targetBot = allBots.find(b => b.channelSecret?.trim() === process.env.LINE_CHANNEL_SECRET?.trim()) || allBots[0];
-        } else if (!targetBot && allBots.length > 0) {
-            // สำหรับปุ่ม Verify
-            targetBot = allBots[0];
-        }
-
-        // Send 200 OK immediately to satisfy LINE's requirement (< 1s)
-        res.status(200).send('OK');
-
-        // Process in background to avoid timeouts
-        if (targetBot) {
-            (async () => {
-                try {
-                    if (events.length > 0) {
-                        const client = new Client({
-                            channelAccessToken: targetBot.channelAccessToken.trim(),
-                            channelSecret: targetBot.channelSecret?.trim() || undefined
-                        });
-
-                        for (const event of events) {
-                            await handleEvent(event, client, targetBot.id, targetBot.name);
-                        }
-                    }
-                } catch (bgError: any) {
-                    console.error('[WEBHOOK BG ERROR]', bgError.message);
-                }
-            })();
-        }
-    } catch (error: any) {
-        // Still send OK even on error to prevent LINE from retrying excessively
-        if (!res.headersSent) res.status(200).send('OK');
-        console.error('[WEBHOOK ROOT ERROR]', error.message);
-    }
+    })();
 });
 
+// ── Event Handler ──
 async function handleEvent(event: WebhookEvent, client: Client, botId: string, botName: string) {
     const source = event.source;
 
-    // บันทึกรายชื่อกลุ่มทันทีที่มี Event ใดๆ เกิดขึ้น (Join, Message, etc.)
     if (source.type === 'group' && source.groupId) {
         try {
-            // ลองดึงชื่อกลุ่ม
             const summary = await client.getGroupSummary(source.groupId);
             await lineGroupService.syncGroup(source.groupId, summary.groupName, summary.pictureUrl, botId);
-            console.log(`[SYNC SUCCESS] Bot: ${botName} -> Group: ${summary.groupName}`);
-        } catch (e) {
-            // หากดึงชื่อไม่ได้ (บอทอาจยังไม่มีสิทธิ์) ให้บันทึกแค่ ID ไว้ก่อน
+        } catch {
+            // Bot may not have permission yet — save ID only
             await lineGroupService.syncGroup(source.groupId, undefined, undefined, botId);
         }
     }
 
-    // คำสั่งเช็คไอดี
     if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().toLowerCase();
         if (text === '!id' || text === '.id') {

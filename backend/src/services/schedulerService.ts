@@ -3,50 +3,63 @@ import { sendScheduledMessage } from './lineService';
 import prisma from './db';
 
 let isProcessing = false;
+let consecutiveErrors = 0;
+const MAX_CONSECUTIVE_ERRORS = 5;
+const SEND_TIMEOUT_MS = 30_000; // 30 second timeout per message
+
+/** Wrap a promise with a timeout */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${label}`)), ms);
+        promise.then(
+            val => { clearTimeout(timer); resolve(val); },
+            err => { clearTimeout(timer); reject(err); }
+        );
+    });
+}
 
 /**
- * Check for pending messages and send them if it's time
+ * Check for pending messages and send them
  */
 export async function checkAndSendMessages() {
-    if (isProcessing) return; // Prevent overlapping runs
+    if (isProcessing) return;
 
+    isProcessing = true;
     try {
-        isProcessing = true;
         const now = new Date();
-
-        // 1. Fetch pending messages
-        // We look for messages slightly into the future (e.g., +2 seconds) to compensate for processing time
-        const checkWindow = new Date(now.getTime() + 2000);
+        const checkWindow = new Date(now.getTime() + 2_000); // 2s lookahead
 
         const pendingMessages = await prisma.scheduledMessage.findMany({
-            where: {
-                status: 'pending',
-                scheduledTime: { lte: checkWindow }
-            },
-            take: 50
+            where: { status: 'pending', scheduledTime: { lte: checkWindow } },
+            take: 50,
+            orderBy: { scheduledTime: 'asc' }
         });
 
-        if (pendingMessages.length === 0) return;
+        if (pendingMessages.length === 0) {
+            consecutiveErrors = 0;
+            return;
+        }
 
-        console.log(`📨 [REALTIME] Processing ${pendingMessages.length} message(s)...`);
+        console.log(`📨 [SCHEDULER] Processing ${pendingMessages.length} message(s)...`);
 
-        // 2. Mark as 'sending' immediately to prevent other runs from picking them up
+        // Atomically claim messages to prevent double-send across instances
         const messageIds = pendingMessages.map(m => m.id);
         await prisma.scheduledMessage.updateMany({
-            where: { id: { in: messageIds } },
+            where: { id: { in: messageIds }, status: 'pending' }, // double-check status
             data: { status: 'sending' }
         });
 
-        // 3. Process each message sequentially for STABILITY
         for (const message of pendingMessages) {
             let finalStatus: 'sent' | 'failed' = 'failed';
             let errorMessage: string | null = null;
 
             try {
-                const targetIds = JSON.parse(message.targetIds);
-                const imageUrls = message.imageUrls ? JSON.parse(message.imageUrls) : undefined;
+                const targetIds: string[] = JSON.parse(message.targetIds);
+                const imageUrls = message.imageUrls
+                    ? (() => { try { return JSON.parse(message.imageUrls!); } catch { return message.imageUrls; } })()
+                    : undefined;
 
-                const result = await sendScheduledMessage(
+                const sendPromise = sendScheduledMessage(
                     message.targetType,
                     targetIds,
                     message.content,
@@ -57,6 +70,7 @@ export async function checkAndSendMessages() {
                     message.botId || undefined
                 );
 
+                const result = await withTimeout(sendPromise, SEND_TIMEOUT_MS, `msg:${message.id}`);
                 finalStatus = result.success ? 'sent' : 'failed';
                 errorMessage = result.success ? null : (result.error || 'Unknown error');
             } catch (err: any) {
@@ -64,33 +78,52 @@ export async function checkAndSendMessages() {
                 errorMessage = err.message;
             }
 
-            // 4. Update final result and log
-            try {
-                await prisma.$transaction([
-                    prisma.scheduledMessage.update({ where: { id: message.id }, data: { status: finalStatus } }),
-                    prisma.messageLog.create({
-                        data: { messageId: message.id, status: finalStatus, error: errorMessage }
-                    })
-                ]);
-            } catch (dbErr: any) {
-                console.error(`❌ DB Sync Failed for ${message.id}:`, dbErr.message);
+            // Persist result with retry on DB failure
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await prisma.$transaction([
+                        prisma.scheduledMessage.update({
+                            where: { id: message.id },
+                            data: { status: finalStatus }
+                        }),
+                        prisma.messageLog.create({
+                            data: { messageId: message.id, status: finalStatus, error: errorMessage }
+                        })
+                    ]);
+                    break; // Success — exit retry loop
+                } catch (dbErr: any) {
+                    if (attempt === 2) {
+                        console.error(`❌ DB Sync FINAL FAIL for ${message.id}:`, dbErr.message);
+                    } else {
+                        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+                    }
+                }
             }
         }
-    } catch (error) {
-        console.error('Error in scheduler:', error);
+
+        consecutiveErrors = 0;
+    } catch (error: any) {
+        consecutiveErrors++;
+        console.error(`❌ Scheduler error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
+
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            console.error('🚨 Too many consecutive scheduler errors — check DB/network connectivity');
+            consecutiveErrors = 0; // Reset to keep trying
+        }
     } finally {
         isProcessing = false;
     }
 }
 
 /**
- * Initialize the scheduler to check every 10 seconds for "realtime" feel
+ * Initialize the cron scheduler (every 10 seconds)
  */
 export function initScheduler() {
-    // Run every 10 seconds
     cron.schedule('*/10 * * * * *', () => {
-        checkAndSendMessages();
+        checkAndSendMessages().catch(err => {
+            console.error('[SCHEDULER UNHANDLED]', err.message);
+        });
     });
 
-    console.log('🚀 Realtime Scheduler initialized - checking every 10s');
+    console.log('🚀 Scheduler initialized — checking every 10s');
 }

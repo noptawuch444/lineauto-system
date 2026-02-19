@@ -1,16 +1,18 @@
-import { Client, ClientConfig, TextMessage, ImageMessage } from '@line/bot-sdk';
+import { Client, TextMessage } from '@line/bot-sdk';
 import prisma from './db';
 
-// Cache for LINE Clients to prevent redundant allocations
-const clientCache: Record<string, Client> = {};
+// Cache LINE Clients by botId/token — cleared when bot is updated
+const clientCache = new Map<string, { client: Client; createdAt: number }>();
+const CLIENT_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Function to get fresh credentials from database if botId provided, or use token/env
+/** Get (or create) a client with TTL-based cache to handle token rotation */
 async function getClient(token?: string, botId?: string): Promise<Client> {
     const cacheKey = botId || token || 'default';
+    const cached = clientCache.get(cacheKey);
 
-    // Check cache first for performance
-    if (clientCache[cacheKey]) {
-        return clientCache[cacheKey];
+    // Return cached client if fresh
+    if (cached && Date.now() - cached.createdAt < CLIENT_TTL_MS) {
+        return cached.client;
     }
 
     let accessToken = token || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
@@ -18,27 +20,35 @@ async function getClient(token?: string, botId?: string): Promise<Client> {
 
     if (botId) {
         try {
-            const bot = await prisma.lineBot.findUnique({ where: { id: botId } });
-            if (bot && bot.isActive) {
+            const bot = await prisma.lineBot.findUnique({
+                where: { id: botId },
+                select: { channelAccessToken: true, channelSecret: true, isActive: true }
+            });
+            if (bot?.isActive) {
                 accessToken = bot.channelAccessToken.trim();
                 secret = bot.channelSecret?.trim() || secret;
             }
         } catch (dbErr) {
-            console.error('⚠️ DB Fetch Failed:', dbErr);
+            console.error('⚠️ DB Fetch Failed for bot client:', dbErr);
         }
     }
 
-    const client = new Client({
-        channelAccessToken: accessToken,
-        channelSecret: secret,
-    });
+    if (!accessToken) {
+        throw new Error('No LINE Channel Access Token available');
+    }
 
-    // Cache the client
-    clientCache[cacheKey] = client;
+    const client = new Client({ channelAccessToken: accessToken, channelSecret: secret });
+    clientCache.set(cacheKey, { client, createdAt: Date.now() });
     return client;
 }
 
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+/** Invalidate a cached client (call after bot token update) */
+export function invalidateClientCache(botId?: string, token?: string) {
+    const key = botId || token || 'default';
+    clientCache.delete(key);
+}
+
+const sleep = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
 
 export interface MessageTarget {
     type: 'user' | 'group' | 'room';
@@ -46,28 +56,31 @@ export interface MessageTarget {
 }
 
 /**
- * Core internal function for sequential batch sending with throttling
+ * Core: Sequential batch send with rate-limit protection
  */
-async function batchSend(client: Client, ids: string[], messages: any[]): Promise<{ success: boolean; error?: string }> {
-    const results = [];
-    const isLargeBatch = ids.length > 5;
+async function batchSend(
+    client: Client,
+    ids: string[],
+    messages: any[]
+): Promise<{ success: boolean; error?: string }> {
+    const failed: string[] = [];
 
     for (const id of ids) {
         try {
             await client.pushMessage(id, messages);
-            results.push({ id, success: true });
-
-            // Critical: Respect LINE rate limits via sequential throttle
-            if (isLargeBatch) await sleep(100);
+            // Throttle for batches > 5 to respect LINE rate limits
+            if (ids.length > 5) await sleep(120);
         } catch (error: any) {
-            console.error(`❌ [Batch Failed] ${id}: ${error.message}`);
-            results.push({ id, success: false, error: error.message });
+            console.error(`❌ [Batch] Failed ${id}: ${error.message}`);
+            failed.push(id);
         }
     }
 
-    const failed = results.filter(r => !r.success);
     if (failed.length > 0) {
-        return { success: false, error: `Failed to deliver to ${failed.length} targets` };
+        return {
+            success: failed.length < ids.length, // partial success still counts
+            error: `Failed to deliver to ${failed.length}/${ids.length} targets`
+        };
     }
     return { success: true };
 }
@@ -84,17 +97,16 @@ export async function sendTextMessage(
     try {
         const client = await getClient(token, botId);
         const message: TextMessage = { type: 'text', text };
-
-        console.log(`🚀 [TEXT] Delivering to ${target.ids.length} IDs...`);
+        console.log(`🚀 [TEXT] → ${target.ids.length} target(s)`);
         return await batchSend(client, target.ids, [message]);
     } catch (error: any) {
-        console.error('💥 TEXT_SEND_CRITICAL:', error);
+        console.error('💥 TEXT_SEND_CRITICAL:', error.message);
         return { success: false, error: error.message };
     }
 }
 
 /**
- * Send image messages (single or multiple) to LINE users/groups
+ * Send image messages (single or multiple) with optional text
  */
 export async function sendImageMessage(
     target: MessageTarget,
@@ -107,42 +119,32 @@ export async function sendImageMessage(
     try {
         const client = await getClient(token, botId);
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-        const messages: any[] = [];
-        const imageMessages = urls.slice(0, text ? 4 : 5).map(url => {
-            let fullUrl = url;
-            if (!url.startsWith('http') && !url.startsWith('data:')) {
-                fullUrl = `${process.env.BASE_URL || 'http://localhost:3000'}${url}`;
-            }
-            return {
-                type: 'image',
-                originalContentUrl: fullUrl,
-                previewImageUrl: fullUrl,
-            };
+        const imageMessages: any[] = urls.slice(0, text ? 4 : 5).map(url => {
+            const fullUrl = url.startsWith('http') || url.startsWith('data:')
+                ? url
+                : `${baseUrl}${url}`;
+            return { type: 'image', originalContentUrl: fullUrl, previewImageUrl: fullUrl };
         });
 
         const textMessage = text ? { type: 'text', text } : null;
-
-        if (imageFirst) {
-            messages.push(...imageMessages);
-            if (textMessage) messages.push(textMessage);
-        } else {
-            if (textMessage) messages.push(textMessage);
-            messages.push(...imageMessages);
-        }
+        const messages: any[] = imageFirst
+            ? [...imageMessages, ...(textMessage ? [textMessage] : [])]
+            : [...(textMessage ? [textMessage] : []), ...imageMessages];
 
         if (messages.length === 0) return { success: false, error: 'Empty content' };
 
-        console.log(`🚀 [IMAGE] Delivering ${messages.length} pkgs to ${target.ids.length} IDs...`);
+        console.log(`🚀 [IMAGE] ${messages.length} msg(s) → ${target.ids.length} target(s)`);
         return await batchSend(client, target.ids, messages);
     } catch (error: any) {
-        console.error('💥 IMAGE_SEND_CRITICAL:', error);
+        console.error('💥 IMAGE_SEND_CRITICAL:', error.message);
         return { success: false, error: error.message };
     }
 }
 
 /**
- * Send a scheduled message (text or image)
+ * Send a scheduled message (auto-detects text vs image)
  */
 export async function sendScheduledMessage(
     targetType: string,
@@ -159,11 +161,17 @@ export async function sendScheduledMessage(
         ids: targetIds,
     };
 
-    const images = imageUrls ? (typeof imageUrls === 'string' ? JSON.parse(imageUrls) : imageUrls) : (imageUrl ? [imageUrl] : []);
-
-    if (images && images.length > 0) {
-        return sendImageMessage(target, images, content, token, imageFirst, botId);
-    } else {
-        return sendTextMessage(target, content, token, botId);
+    let images: string[] = [];
+    if (imageUrls) {
+        images = typeof imageUrls === 'string'
+            ? (() => { try { return JSON.parse(imageUrls); } catch { return [imageUrls]; } })()
+            : imageUrls;
+    } else if (imageUrl) {
+        images = [imageUrl];
     }
+
+    if (images.length > 0) {
+        return sendImageMessage(target, images, content, token, imageFirst, botId);
+    }
+    return sendTextMessage(target, content, token, botId);
 }
