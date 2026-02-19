@@ -71,6 +71,24 @@ export default function TemplateManagement() {
         fetchLineGroups(formData.botId);
     }, [formData.botId]);
 
+    // ✨ Auto-pull Template Name from Group Name based on Target IDs
+    useEffect(() => {
+        // We only auto-fill if the name is empty (indicating a new template or user wants auto-fill)
+        if (!formData.name && formData.targetIds.trim()) {
+            const ids = formData.targetIds.split(',').map(id => id.trim()).filter(id => id);
+            const matchedNames = ids
+                .map(id => lineGroups.find(g => g.groupId === id)?.groupName)
+                .filter(Boolean) as string[];
+
+            if (matchedNames.length > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    name: matchedNames.join(', ')
+                }));
+            }
+        }
+    }, [formData.targetIds, lineGroups]);
+
     const fetchBots = async () => {
         try {
             const r = await axios.get(`${API_BASE_URL}/bots`);
@@ -450,12 +468,27 @@ export default function TemplateManagement() {
                                                 </div>
                                                 <code>{g.groupId}</code>
                                             </div>
-                                            <button className="adm-btn-copy-id" onClick={() => {
-                                                navigator.clipboard.writeText(g.groupId);
-                                                showToast('คัดลอก ID แล้ว', 'ok');
-                                            }}>
-                                                <Copy size={14} />
-                                            </button>
+                                            <div className="adm-group-actions">
+                                                <button className="adm-btn-pick" onClick={() => {
+                                                    const currentIds = formData.targetIds.split(',').map(i => i.trim()).filter(Boolean);
+                                                    if (!currentIds.includes(g.groupId)) {
+                                                        const newIds = [...currentIds, g.groupId].join(', ');
+                                                        setFormData({ ...formData, targetIds: newIds });
+                                                        showToast('เพิ่มกลุ่มแล้ว', 'ok');
+                                                    } else {
+                                                        showToast('กลุ่มนี้อยู่ในรายการแล้ว', 'warn');
+                                                    }
+                                                    if (!isEditing) setIsEditing(true);
+                                                }}>
+                                                    <Plus size={14} /> เลือกกลุ่ม
+                                                </button>
+                                                <button className="adm-btn-copy-id" title="คัดลอก ID" onClick={() => {
+                                                    navigator.clipboard.writeText(g.groupId);
+                                                    showToast('คัดลอก ID แล้ว', 'ok');
+                                                }}>
+                                                    <Copy size={14} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
