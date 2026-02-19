@@ -65,7 +65,7 @@ export default function PublicScheduler() {
                 const end = new Date(template.endDate);
                 const diff = end.getTime() - now.getTime();
                 if (diff <= 0) {
-                    setError('เทมเพลตนี้หมดอายุการใช้งานแล้ว');
+                    setError('เว็ปไซต์นี้หมดอายุการใช้งานแล้ว\n(สิ้นสุดเมื่อ: ' + end.toLocaleString('th-TH') + ')');
                     clearInterval(timerIv);
                 } else {
                     // Update countdown if needed
@@ -369,9 +369,9 @@ export default function PublicScheduler() {
             <div className="g">
                 <div className="g-center">
                     <div className="g-error-icon"><AlertTriangle size={48} /></div>
-                    <h2>{isInactive ? 'บอทไลน์นี้ถูกปิดใช้งาน' : 'ไม่พบเทมเพลต'}</h2>
-                    <p style={{ color: '#a89060', maxWidth: '400px', lineHeight: '1.6' }}>
-                        {isInactive ? `ขออภัย บอทไลน์ "${template?.name || 'นี้'}" ไม่สามารถใช้งานได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ` : error}
+                    <h2>{isInactive ? 'เว็ปไซต์นี้ถูกปิดใช้งาน' : 'ไม่พบเว็ปไซต์นี้'}</h2>
+                    <p style={{ color: '#a89060', maxWidth: '400px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                        {isInactive ? `ขออภัย เว็ปไซต์นี้ไม่สามารถใช้งานได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ` : error}
                     </p>
                 </div>
             </div>

@@ -14,8 +14,8 @@ const prisma = new PrismaClient();
 router.get('/template/:publicCode', async (req, res) => {
     try {
         const template = await templateService.getTemplateByPublicCode(req.params.publicCode);
-        if (!template) return res.status(404).json({ error: 'Template not found' });
-        if (!template.isActive) return res.status(403).json({ error: 'Template is not active' });
+        if (!template) return res.status(404).json({ error: 'ไม่พบเว็ปไซต์นี้' });
+        if (!template.isActive) return res.status(403).json({ error: 'เว็ปไซต์นี้ถูกปิดใช้งาน' });
 
         // Date check with explicit logging
         const now = new Date();
@@ -26,7 +26,7 @@ router.get('/template/:publicCode', async (req, res) => {
 
         if (endDate && now.getTime() > endDate.getTime()) {
             return res.status(403).json({
-                error: 'เทมเพลตนี้หมดอายุการใช้งานแล้ว (สิ้นสุดเมื่อ: ' + endDate.toLocaleString('th-TH') + ')'
+                error: 'เว็ปไซต์นี้หมดอายุการใช้งานแล้ว\n(สิ้นสุดเมื่อ: ' + endDate.toLocaleString('th-TH') + ')'
             });
         }
 
