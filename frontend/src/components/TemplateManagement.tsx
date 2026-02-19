@@ -481,22 +481,6 @@ export default function TemplateManagement() {
                                     />
                                 </div>
                                 <div className="adm-fg flex-1">
-                                    <label>หมวดหมู่</label>
-                                    <select
-                                        className="adm-input"
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                    >
-                                        <option value="">ทั่วไป</option>
-                                        <option value="lottery">หวย</option>
-                                        <option value="promotion">โปรโมชั่น</option>
-                                        <option value="news">ข่าวสาร</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="adm-form-row">
-                                <div className="adm-fg flex-1">
                                     <label>เลือกบอทที่ใช้ส่ง*</label>
                                     <select
                                         className="adm-input"
@@ -509,6 +493,9 @@ export default function TemplateManagement() {
                                         ))}
                                     </select>
                                 </div>
+                            </div>
+
+                            <div className="adm-form-row">
                                 <div className="adm-fg flex-1">
                                     <label>คำอธิบาย (สั้นๆ)</label>
                                     <input
@@ -523,18 +510,6 @@ export default function TemplateManagement() {
 
                             <div className="adm-form-row">
                                 <div className="adm-fg flex-1">
-                                    <label>Target Type*</label>
-                                    <select
-                                        className="adm-input"
-                                        value={formData.targetType}
-                                        onChange={(e) => setFormData({ ...formData, targetType: e.target.value })}
-                                    >
-                                        <option value="group">Group (กลุ่มไลน์)</option>
-                                        <option value="user">User (คนเดียว)</option>
-                                        <option value="room">Room (ห้องแชท)</option>
-                                    </select>
-                                </div>
-                                <div className="adm-fg flex-2">
                                     <label>Target IDs* (แยกด้วย comma)</label>
                                     <textarea
                                         className="adm-ta"
@@ -555,7 +530,6 @@ export default function TemplateManagement() {
                                         value={formData.startDate}
                                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                                     />
-                                    <small style={{ color: 'var(--dim)', fontSize: '11px' }}>ปล่อยว่างหากไม่จำกัด</small>
                                 </div>
                                 <div className="adm-fg flex-1">
                                     <label><Calendar size={14} /> วันสิ้นสุดการใช้งาน</label>
@@ -565,7 +539,6 @@ export default function TemplateManagement() {
                                         value={formData.endDate}
                                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                                     />
-                                    <small style={{ color: 'var(--dim)', fontSize: '11px' }}>ปล่อยว่างหากไม่จำกัด</small>
                                 </div>
                             </div>
 
