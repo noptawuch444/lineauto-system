@@ -52,6 +52,8 @@ export default function TemplateManagement() {
         endDate: ''
     });
     const [toast, setToast] = useState<{ msg: string, type: 'ok' | 'err' | 'warn' } | null>(null);
+    const [activeQuickDateId, setActiveQuickDateId] = useState<string | null>(null);
+    const [quickDateData, setQuickDateData] = useState({ startDate: '', endDate: '' });
 
     const showToast = (msg: string, type: 'ok' | 'err' | 'warn' = 'ok') => {
         setToast({ msg, type });
@@ -319,6 +321,33 @@ export default function TemplateManagement() {
         }
     };
 
+    const handleQuickDateEdit = (template: MessageTemplate) => {
+        setActiveQuickDateId(template.id);
+        setQuickDateData({
+            startDate: template.startDate ? template.startDate.slice(0, 16) : '',
+            endDate: template.endDate ? template.endDate.slice(0, 16) : ''
+        });
+    };
+
+    const handleQuickSaveDates = async (id: string) => {
+        try {
+            await axios.put(`${API_BASE_URL}/admin/templates/${id}`, {
+                startDate: quickDateData.startDate || null,
+                endDate: quickDateData.endDate || null
+            });
+            setTemplates(prev => prev.map(t => t.id === id ? {
+                ...t,
+                startDate: quickDateData.startDate || null,
+                endDate: quickDateData.endDate || null
+            } : t));
+            setActiveQuickDateId(null);
+            showToast('ปรับปรุงช่วงเวลาแล้ว', 'ok');
+        } catch (error) {
+            console.error('Error saving dates:', error);
+            showToast('บันทึกไม่สำเร็จ', 'err');
+        }
+    };
+
     const copyPublicLink = (publicCode: string) => {
         const link = `${FRONTEND_URL}/schedule/${publicCode}`;
         navigator.clipboard.writeText(link);
@@ -583,15 +612,47 @@ export default function TemplateManagement() {
                                             <Target size={14} />
                                             <span>{template.targetType}</span>
                                         </div>
-                                        {(template.startDate || template.endDate) && (
-                                            <div className="adm-meta-item" style={{ color: 'var(--gold-light)' }}>
-                                                <Calendar size={14} />
-                                                <span style={{ fontSize: '11px' }}>
-                                                    {template.startDate ? new Date(template.startDate).toLocaleDateString('th-TH') : '...'} -
-                                                    {template.endDate ? new Date(template.endDate).toLocaleDateString('th-TH') : '...'}
-                                                </span>
-                                            </div>
-                                        )}
+
+                                        <div className="adm-inline-dates">
+                                            {activeQuickDateId === template.id ? (
+                                                <div className="adm-quick-edit">
+                                                    <div className="adm-quick-inputs">
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.startDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, startDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={quickDateData.endDate}
+                                                            onChange={e => setQuickDateData({ ...quickDateData, endDate: e.target.value })}
+                                                            className="adm-q-input"
+                                                        />
+                                                    </div>
+                                                    <div className="adm-quick-btns">
+                                                        <button className="adm-q-btn ok" onClick={() => handleQuickSaveDates(template.id)} title="บันทึก"><CheckCircle2 size={14} /></button>
+                                                        <button className="adm-q-btn cancel" onClick={() => setActiveQuickDateId(null)} title="ยกเลิก"><X size={14} /></button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="adm-quick-display" onClick={() => handleQuickDateEdit(template)} title="คลิกเพื่อตั้งค่าช่วงเวลา">
+                                                    <Calendar size={14} />
+                                                    <span className="adm-q-text">
+                                                        {!template.startDate && !template.endDate ? (
+                                                            'ตั้งค่าช่วงเวลาการใช้งาน'
+                                                        ) : (
+                                                            <>
+                                                                {template.startDate ? new Date(template.startDate).toLocaleDateString('th-TH') : '...'} -
+                                                                {template.endDate ? new Date(template.endDate).toLocaleDateString('th-TH') : '...'}
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                    <Edit3 size={11} className="adm-q-icon" />
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="adm-meta-tags">
                                             {ids.slice(0, 2).map((id, i) => <span key={i} className="adm-tag">{id.slice(0, 10)}...</span>)}
                                             {ids.length > 2 && <span className="adm-tag">+{ids.length - 2}</span>}
