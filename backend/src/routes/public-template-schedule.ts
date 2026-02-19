@@ -17,11 +17,8 @@ router.get('/template/:publicCode', async (req, res) => {
         if (!template) return res.status(404).json({ error: 'Template not found' });
         if (!template.isActive) return res.status(403).json({ error: 'Template is not active' });
 
-        // Date check
+        // Date check: We only block if the template is ALREADY EXPIRED.
         const now = new Date();
-        if (template.startDate && now < new Date(template.startDate)) {
-            return res.status(403).json({ error: 'Template is not yet active (Starts: ' + new Date(template.startDate).toLocaleDateString('th-TH') + ')' });
-        }
         if (template.endDate && now > new Date(template.endDate)) {
             return res.status(403).json({ error: 'Template has expired (Ended: ' + new Date(template.endDate).toLocaleDateString('th-TH') + ')' });
         }
@@ -86,13 +83,19 @@ router.post('/schedule/:publicCode', async (req, res) => {
         const template = await templateService.getTemplateByPublicCode(publicCode);
         if (!template) return res.status(404).json({ error: 'Template not found' });
 
-        // Date check
+        // Date check: Is the template already expired?
         const now = new Date();
-        if (template.startDate && now < new Date(template.startDate)) {
-            return res.status(403).json({ error: 'Template is not yet active' });
-        }
         if (template.endDate && now > new Date(template.endDate)) {
             return res.status(403).json({ error: 'Template has expired' });
+        }
+
+        // Check if the scheduled time is within the template's validity period
+        const targetTime = new Date(scheduledTime);
+        if (template.startDate && targetTime < new Date(template.startDate)) {
+            return res.status(400).json({ error: 'Cannot schedule before template start date' });
+        }
+        if (template.endDate && targetTime > new Date(template.endDate)) {
+            return res.status(400).json({ error: 'Cannot schedule after template end date' });
         }
 
         const finalImageUrls = (imageUrls && Array.isArray(imageUrls)) ? JSON.stringify(imageUrls) : (imageUrl ? JSON.stringify([imageUrl]) : null);
@@ -102,7 +105,7 @@ router.post('/schedule/:publicCode', async (req, res) => {
                 content,
                 imageUrl: imageUrl || (imageUrls?.[0]) || null,
                 imageUrls: finalImageUrls,
-                scheduledTime: new Date(scheduledTime),
+                scheduledTime: targetTime,
                 status: 'pending',
                 targetType: template.targetType,
                 targetIds: template.targetIds,

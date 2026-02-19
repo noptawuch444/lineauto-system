@@ -122,16 +122,25 @@ export async function updateTemplate(id: string, data: {
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
 
-    return await prisma.messageTemplate.update({
+    const updated = await prisma.messageTemplate.update({
         where: { id },
         data: updateData
     });
+
+    // Invalidate cache
+    publicCache.delete(updated.publicCode);
+
+    return updated;
 }
 
 /**
  * Delete template
  */
 export async function deleteTemplate(id: string) {
+    const template = await prisma.messageTemplate.findUnique({ where: { id } });
+    if (template) {
+        publicCache.delete(template.publicCode);
+    }
     return await prisma.messageTemplate.delete({
         where: { id }
     });
@@ -146,8 +155,13 @@ export async function toggleTemplateStatus(id: string) {
         throw new Error('Template not found');
     }
 
-    return await prisma.messageTemplate.update({
+    const updated = await prisma.messageTemplate.update({
         where: { id },
         data: { isActive: !template.isActive }
     });
+
+    // Invalidate cache
+    publicCache.delete(updated.publicCode);
+
+    return updated;
 }

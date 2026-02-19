@@ -282,8 +282,8 @@ export default function TemplateManagement() {
                 targetType: formData.targetType,
                 targetIds: targetIdsArray,
                 botId: formData.botId || null,
-                startDate: formData.startDate || null,
-                endDate: formData.endDate || null
+                startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+                endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
             };
 
             if (selectedTemplate) {
