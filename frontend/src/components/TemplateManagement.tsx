@@ -562,34 +562,24 @@ export default function TemplateManagement() {
                                 </div>
                             </div>
 
-                            <div className="adm-section">
-                                <div className="adm-section-title">
-                                    <Clock size={16} /> กำหนดระยะเวลาการใช้งาน (Validity Period)
+                            <div className="adm-form-row">
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันเริ่มต้นการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                    />
                                 </div>
-                                <div className="adm-section-content gold-box">
-                                    <div className="adm-form-row no-margin">
-                                        <div className="adm-fg flex-1">
-                                            <label><Calendar size={14} /> วันเริ่มต้น</label>
-                                            <input
-                                                type="datetime-local"
-                                                className="adm-input"
-                                                value={formData.startDate}
-                                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="adm-fg flex-1">
-                                            <label><Calendar size={14} /> วันสิ้นสุด</label>
-                                            <input
-                                                type="datetime-local"
-                                                className="adm-input"
-                                                value={formData.endDate}
-                                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="adm-help-text">
-                                        * เว้นว่างไว้หากต้องการให้ใช้งานได้ตลอดเวลา (ไม่จำกัด)
-                                    </p>
+                                <div className="adm-fg flex-1">
+                                    <label><Calendar size={14} /> วันสิ้นสุดการใช้งาน</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="adm-input"
+                                        value={formData.endDate}
+                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                    />
                                 </div>
                             </div>
 
