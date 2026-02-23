@@ -108,6 +108,20 @@ export async function sendTextMessage(
 /**
  * Send image messages (single or multiple) with optional text
  */
+/** Detect public base URL for images — important for LINE push */
+function getBaseUrl(req?: any): string {
+    if (process.env.BASE_URL) return process.env.BASE_URL.replace(/\/$/, '');
+
+    // Guess from request if available (for on-the-fly uploads)
+    if (req) {
+        const host = req.get('x-forwarded-host') || req.get('host');
+        const proto = req.get('x-forwarded-proto') || req.protocol;
+        return `${proto}://${host}`;
+    }
+
+    return 'http://localhost:3000'; // Fallback
+}
+
 export async function sendImageMessage(
     target: MessageTarget,
     imageUrls: string | string[],
@@ -119,8 +133,7 @@ export async function sendImageMessage(
     try {
         const client = await getClient(token, botId);
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
-        const rawBaseUrl = process.env.BASE_URL || 'http://localhost:3000';
-        const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+        const baseUrl = getBaseUrl();
 
         const imageMessages: any[] = urls.slice(0, text ? 4 : 5).map(url => {
             let fullUrl = url;

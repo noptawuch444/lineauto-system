@@ -29,7 +29,8 @@ export async function uploadToImgur(filePath: string): Promise<{ success: boolea
             {
                 headers: formData.getHeaders(),
                 maxContentLength: Infinity,
-                maxBodyLength: Infinity
+                maxBodyLength: Infinity,
+                timeout: 15000 // 15 seconds timeout
             }
         );
 

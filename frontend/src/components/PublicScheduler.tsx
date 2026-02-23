@@ -199,11 +199,21 @@ export default function PublicScheduler() {
 
     const compressImage = (file: File): Promise<File> => {
         return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                console.warn('Compression timeout for:', file.name);
+                resolve(file);
+            }, 5000);
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = (e) => {
                 const img = new Image();
                 img.src = e.target?.result as string;
+                img.onerror = () => {
+                    clearTimeout(timeout);
+                    console.error('Image load error:', file.name);
+                    resolve(file);
+                };
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     let width = img.width;
@@ -225,9 +235,14 @@ export default function PublicScheduler() {
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
+                    if (!ctx) {
+                        clearTimeout(timeout);
+                        return resolve(file);
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
 
                     canvas.toBlob((blob) => {
+                        clearTimeout(timeout);
                         if (blob) {
                             const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
                                 type: 'image/jpeg',
@@ -237,8 +252,12 @@ export default function PublicScheduler() {
                         } else {
                             resolve(file);
                         }
-                    }, 'image/jpeg', 0.7);
+                    }, 'image/jpeg', 0.8);
                 };
+            };
+            reader.onerror = () => {
+                clearTimeout(timeout);
+                resolve(file);
             };
         });
     };
@@ -287,20 +306,40 @@ export default function PublicScheduler() {
         try {
             setSending(true);
             const urls: string[] = [];
+            console.log('📤 Starting upload for', files.length, 'files...');
+
             for (const file of files) {
-                const fd = new FormData(); fd.append('image', file);
-                const r = await axios.post(`${API}/public-template/upload`, fd);
-                if (r.data.url) urls.push(r.data.url);
+                const fd = new FormData();
+                fd.append('image', file);
+                const r = await axios.post(`${API}/public-template/upload`, fd, {
+                    timeout: 15000,
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (r.data.url) {
+                    console.log('✅ Uploaded:', r.data.url);
+                    urls.push(r.data.url);
+                }
             }
+
+            console.log('📅 Creating schedule task...');
             await axios.post(`${API}/public-template/schedule/${publicCode}`, {
-                content: text, imageUrl: urls[0] || null, imageUrls: urls,
+                content: text,
+                imageUrl: urls[0] || null,
+                imageUrls: urls,
                 scheduledTime: new Date(scheduledTime).toISOString(),
                 imageFirst: imageFirst
-            });
-            clearForm(); loadMessages();
+            }, { timeout: 15000 });
+
+            console.log('🚀 Schedule created successfully!');
+            clearForm();
+            loadMessages();
             showToast('ตั้งเวลาส่งข้อความเรียบร้อยแล้ว!', 'ok');
-        } catch (e: any) { showToast(e.message || 'เกิดข้อผิดพลาด', 'err'); }
-        finally { setSending(false); }
+        } catch (e: any) {
+            console.error('❌ Submit Error:', e);
+            showToast(e.response?.data?.error || e.message || 'เกิดข้อผิดพลาด', 'err');
+        } finally {
+            setSending(false);
+        }
     };
 
     const minDT = () => {
