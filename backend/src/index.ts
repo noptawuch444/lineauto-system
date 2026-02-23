@@ -24,6 +24,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Root route (Moved to top for visibility)
+app.get('/', (req, res) => {
+    res.send('<h1>🚀 GoldSync AutoBot API is Online</h1><p>Time: ' + new Date().toLocaleString('th-TH') + '</p><p>Status: OK</p>');
+});
+
 // Middleware
 app.use(compression());
 app.use(cors());
@@ -59,17 +64,6 @@ app.use('/api/liff', liffScheduleRoutes);
 app.use('/api/admin/templates', adminTemplateRoutes);
 app.use('/api/bots', botRoutes);
 
-// Root route
-app.get('/', (req, res) => {
-    res.json({
-        message: '🚀 GoldSync AutoBot API is Running',
-        status: 'online',
-        timezone: process.env.TZ,
-        time: new Date().toLocaleString('th-TH')
-    });
-});
-
-// Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
