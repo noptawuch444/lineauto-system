@@ -73,6 +73,12 @@ export async function checkAndSendMessages() {
                 const result = await withTimeout(sendPromise, SEND_TIMEOUT_MS, `msg:${message.id}`);
                 finalStatus = result.success ? 'sent' : 'failed';
                 errorMessage = result.success ? null : (result.error || 'Unknown error');
+
+                if (result.success) {
+                    console.log(`✅ [SCHEDULER] Message ${message.id} sent successfully`);
+                } else {
+                    console.warn(`⚠️ [SCHEDULER] Message ${message.id} failed: ${errorMessage}`);
+                }
             } catch (err: any) {
                 console.error(`💥 [Critical] Message ${message.id}:`, err.message);
                 errorMessage = err.message;

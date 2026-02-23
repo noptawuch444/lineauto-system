@@ -1,6 +1,26 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 
+const getBaseUrl = () => {
+    const api = import.meta.env.VITE_API_URL || '';
+    if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+    if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        if (origin.includes(':5173')) return origin.replace(':5173', ':3000');
+        return origin;
+    }
+    return '';
+};
+
+const SERVER_URL = getBaseUrl();
+
+const getImgUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${SERVER_URL}${cleanUrl}`;
+};
+
 // Interface adapted from types.ts but for public view
 interface PublicScheduledMessage {
     id: string;
@@ -112,8 +132,8 @@ const PublicMessageCard: React.FC<PublicMessageCardProps> = ({ message }) => {
                             <div className="images-compact">
                                 {images.map((url, idx) => (
                                     <div key={idx} className="img-thumb">
-                                        <a href={url} target="_blank" rel="noopener noreferrer">
-                                            <img src={url} alt={`รูปที่ ${idx + 1}`} />
+                                        <a href={getImgUrl(url)} target="_blank" rel="noopener noreferrer">
+                                            <img src={getImgUrl(url)} alt={`รูปที่ ${idx + 1}`} />
                                             <span>#{idx + 1}</span>
                                         </a>
                                     </div>

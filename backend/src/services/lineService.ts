@@ -135,14 +135,43 @@ export async function sendImageMessage(
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
         const baseUrl = getBaseUrl();
 
-        const imageMessages: any[] = urls.slice(0, text ? 4 : 5).map(url => {
-            let fullUrl = url;
-            if (!url.startsWith('http') && !url.startsWith('data:')) {
-                const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-                fullUrl = `${baseUrl}${cleanUrl}`;
-            }
-            return { type: 'image', originalContentUrl: fullUrl, previewImageUrl: fullUrl };
-        });
+        const imageMessages: any[] = urls.slice(0, text ? 4 : 5)
+            .map(url => {
+                if (!url) return null;
+
+                let fullUrl = url;
+                if (!url.startsWith('http') && !url.startsWith('data:')) {
+                    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+                    fullUrl = `${baseUrl}${cleanUrl}`;
+                }
+
+                // Block data: URLs (LINE doesn't support them)
+                if (fullUrl.startsWith('data:')) {
+                    console.error('❌ [LINE_URL_ERROR] Cannot send data: URI to LINE. Image must be a public URL.');
+                    return null;
+                }
+
+                // Protocol Check & Upgrade
+                if (fullUrl.startsWith('http://')) {
+                    // Check if it's localhost (impossible for LINE)
+                    if (fullUrl.includes('localhost') || fullUrl.includes('127.0.0.1')) {
+                        console.warn('⚠️ [LINE_URL_WARN] Image URL contains "localhost". LINE cannot fetch this. Please use a public HTTPS URL or ngrok.');
+                    } else {
+                        // Upgrade to https for common deployment domains
+                        const publicDomains = ['.ngrok', '.onrender.com', '.app', '.dev', '.net', '.com'];
+                        if (publicDomains.some(d => fullUrl.toLowerCase().includes(d))) {
+                            fullUrl = fullUrl.replace('http://', 'https://');
+                        }
+                    }
+                }
+
+                return {
+                    type: 'image',
+                    originalContentUrl: fullUrl,
+                    previewImageUrl: fullUrl
+                };
+            })
+            .filter(Boolean);
 
         const textMessage = text ? { type: 'text', text } : null;
         const messages: any[] = imageFirst
@@ -151,7 +180,11 @@ export async function sendImageMessage(
 
         if (messages.length === 0) return { success: false, error: 'Empty content' };
 
-        console.log(`🚀 [IMAGE] ${messages.length} msg(s) → ${target.ids.length} target(s)`);
+        // Debug: Show what we are sending
+        console.log(`🚀 [LINE] Sending ${messages.length} content block(s) to ${target.ids.length} target(s)`);
+        messages.forEach((m, i) => {
+            if (m.type === 'image') console.log(`   [${i + 1}] 🖼️ URL: ${m.originalContentUrl}`);
+        });
         return await batchSend(client, target.ids, messages);
     } catch (error: any) {
         console.error('💥 IMAGE_SEND_CRITICAL:', error.message);
