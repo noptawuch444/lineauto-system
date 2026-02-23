@@ -11,7 +11,15 @@ import {
 import './PublicScheduler.css';
 
 const API = import.meta.env.VITE_API_URL || '/api';
+const SERVER_URL = API.replace(/\/api$/, ''); // Derived server root (e.g. https://domain.com)
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
+
+/** Resolve relative image URLs to absolute using SERVER_URL */
+const getImgUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 interface Template {
     id: string;
@@ -343,7 +351,7 @@ export default function PublicScheduler() {
                         {imageFirst ? (
                             <>
                                 {previews.map((url, i) => (
-                                    <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                    <div key={`img-${i}`} className="line-bubble-img"><img src={getImgUrl(url)} alt="" /></div>
                                 ))}
                                 {text && <div className="line-bubble-text">{text}</div>}
                             </>
@@ -351,7 +359,7 @@ export default function PublicScheduler() {
                             <>
                                 {text && <div className="line-bubble-text">{text}</div>}
                                 {previews.map((url, i) => (
-                                    <div key={`img-${i}`} className="line-bubble-img"><img src={url} alt="" /></div>
+                                    <div key={`img-${i}`} className="line-bubble-img"><img src={getImgUrl(url)} alt="" /></div>
                                 ))}
                             </>
                         )}
@@ -535,7 +543,7 @@ export default function PublicScheduler() {
                                                         <div className="g-det-text">{m.content}</div>
                                                         {imgs.length > 0 && (
                                                             <div className="g-det-imgs">
-                                                                {imgs.map((url, i) => <img key={i} src={url} alt="" className="g-det-img-small" />)}
+                                                                {imgs.map((url, i) => <img key={i} src={getImgUrl(url)} alt="" className="g-det-img-small" />)}
                                                             </div>
                                                         )}
                                                     </div>

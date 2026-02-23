@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { ScheduledMessage } from '../types';
 import { format } from 'date-fns';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+const SERVER_URL = API_URL.replace(/\/api$/, '');
+
+const getImgUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 interface MessageCardProps {
     message: ScheduledMessage;
     onEdit: (message: ScheduledMessage) => void;
@@ -103,7 +112,7 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, onEdit, onCancel }) 
                                         className="img-thumb"
                                         style={{ cursor: 'default' }}
                                     >
-                                        <img src={url} alt={`รูปที่ ${idx + 1}`} />
+                                        <img src={getImgUrl(url)} alt={`รูปที่ ${idx + 1}`} />
                                         <span>{idx + 1}</span>
                                     </div>
                                 ))}

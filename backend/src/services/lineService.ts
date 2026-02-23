@@ -119,12 +119,15 @@ export async function sendImageMessage(
     try {
         const client = await getClient(token, botId);
         const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
-        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const rawBaseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
         const imageMessages: any[] = urls.slice(0, text ? 4 : 5).map(url => {
-            const fullUrl = url.startsWith('http') || url.startsWith('data:')
-                ? url
-                : `${baseUrl}${url}`;
+            let fullUrl = url;
+            if (!url.startsWith('http') && !url.startsWith('data:')) {
+                const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+                fullUrl = `${baseUrl}${cleanUrl}`;
+            }
             return { type: 'image', originalContentUrl: fullUrl, previewImageUrl: fullUrl };
         });
 
