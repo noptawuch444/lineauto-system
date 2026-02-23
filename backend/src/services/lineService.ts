@@ -110,7 +110,11 @@ export async function sendTextMessage(
  */
 /** Detect public base URL for images — important for LINE push */
 function getBaseUrl(req?: any): string {
+    // Priority 1: Explicitly set BASE_URL
     if (process.env.BASE_URL) return process.env.BASE_URL.replace(/\/$/, '');
+
+    // Priority 2: Render's automatic external URL
+    if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
 
     // Guess from request if available (for on-the-fly uploads)
     if (req) {
