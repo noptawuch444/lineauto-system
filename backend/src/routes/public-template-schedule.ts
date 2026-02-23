@@ -75,17 +75,29 @@ const upload = multer({
 // POST upload
 router.post('/upload', upload.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Missing file' });
+
+    const localPath = path.join(uploadDir, req.file.filename);
+
     try {
-        const resImg = await uploadToImgur(path.join(uploadDir, req.file.filename));
-        if (resImg.success) {
-            fs.unlinkSync(path.join(uploadDir, req.file.filename));
-            res.json({ url: resImg.url });
-        } else {
-            const { getBaseUrl } = await import('../services/lineService');
-            const baseUrl = getBaseUrl(req);
-            res.json({ url: `${baseUrl}/uploads/${req.file.filename}`, fallback: true });
+        const resImg = await uploadToImgur(localPath);
+
+        // Always delete the local temp file after upload attempt
+        try { fs.unlinkSync(localPath); } catch { }
+
+        if (resImg.success && resImg.url) {
+            console.log(`✅ [PUBLIC-UPLOAD] Image available at: ${resImg.url}`);
+            return res.json({ url: resImg.url });
         }
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+
+        console.error('❌ [PUBLIC-UPLOAD] ImgBB upload failed:', resImg.error);
+        return res.status(500).json({
+            error: 'Image upload failed. Please try again.',
+            detail: resImg.error
+        });
+    } catch (e: any) {
+        try { fs.unlinkSync(localPath); } catch { }
+        return res.status(500).json({ error: e.message });
+    }
 });
 
 // POST schedule

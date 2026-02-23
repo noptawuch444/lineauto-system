@@ -150,22 +150,33 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// UPLOAD fallback
+// POST /api/messages/upload - Upload image to ImgBB
 router.post('/upload', upload.single('image'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const localPath = path.join(uploadDir, req.file.filename);
+
     try {
         const { uploadToImgur } = await import('../services/imgurService');
-        const resImg = await uploadToImgur(path.join(uploadDir, req.file.filename));
-        if (resImg.success) {
-            fs.unlinkSync(path.join(uploadDir, req.file.filename));
-            res.json({ url: resImg.url });
-        } else {
-            const { getBaseUrl } = await import('../services/lineService');
-            const baseUrl = getBaseUrl(req);
-            res.json({ url: `${baseUrl}/uploads/${req.file.filename}`, fallback: true });
+        const resImg = await uploadToImgur(localPath);
+
+        // Always delete the local temp file after upload attempt
+        try { fs.unlinkSync(localPath); } catch { }
+
+        if (resImg.success && resImg.url) {
+            console.log(`✅ [UPLOAD] Image available at: ${resImg.url}`);
+            return res.json({ url: resImg.url });
         }
+
+        console.error('❌ [UPLOAD] ImgBB upload failed:', resImg.error);
+        return res.status(500).json({
+            error: 'Image upload failed. Please try again.',
+            detail: resImg.error
+        });
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        try { fs.unlinkSync(localPath); } catch { }
+        console.error('❌ [UPLOAD] Exception:', e.message);
+        return res.status(500).json({ error: e.message });
     }
 });
 

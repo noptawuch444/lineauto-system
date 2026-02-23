@@ -317,18 +317,28 @@ export default function PublicScheduler() {
         try {
             setSending(true);
             const urls: string[] = [];
-            console.log('📤 Starting upload for', files.length, 'files...');
 
-            for (const file of files) {
-                const fd = new FormData();
-                fd.append('image', file);
-                const r = await axios.post(`${API}/public-template/upload`, fd, {
-                    timeout: 15000,
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                if (r.data.url) {
-                    console.log('✅ Uploaded:', r.data.url);
-                    urls.push(r.data.url);
+            if (files.length > 0) {
+                console.log(`📤 Uploading ${files.length} image(s)...`);
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    showToast(`กำลังอัปโหลดรูป ${i + 1}/${files.length}...`, 'warn');
+                    const fd = new FormData();
+                    fd.append('image', file);
+                    try {
+                        const r = await axios.post(`${API}/public-template/upload`, fd, {
+                            timeout: 30000,
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        if (r.data.url) {
+                            console.log(`✅ Uploaded [${i + 1}]:`, r.data.url);
+                            urls.push(r.data.url);
+                        }
+                    } catch (uploadErr: any) {
+                        const errMsg = uploadErr.response?.data?.error || uploadErr.message || 'อัปโหลดรูปไม่สำเร็จ';
+                        console.error(`❌ Upload failed [${i + 1}]:`, errMsg);
+                        throw new Error(`อัปโหลดรูปที่ ${i + 1} ล้มเหลว: ${errMsg}`);
+                    }
                 }
             }
 
