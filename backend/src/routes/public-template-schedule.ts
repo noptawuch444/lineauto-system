@@ -63,7 +63,7 @@ router.get('/template/:publicCode/messages', async (req, res) => {
 });
 
 // Multer
-const uploadDir = './uploads';
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const upload = multer({
     storage: multer.diskStorage({

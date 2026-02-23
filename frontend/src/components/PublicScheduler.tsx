@@ -13,7 +13,13 @@ import './PublicScheduler.css';
 const getBaseUrl = () => {
     const api = import.meta.env.VITE_API_URL || '';
     if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-    if (typeof window !== 'undefined') return window.location.origin;
+    if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        // Local dev proxy fix
+        if (origin.includes(':5173')) return origin.replace(':5173', ':3000');
+        // ngrok/Render same-domain serving
+        return origin;
+    }
     return '';
 };
 
@@ -158,18 +164,22 @@ export default function PublicScheduler() {
     const loadTemplate = async (init = false) => {
         try {
             if (init) setLoading(true);
-            const r = await axios.get(`${API}/public-template/template/${publicCode}`);
+            const r = await axios.get(`${API}/public-template/template/${publicCode}`, { timeout: 10000 });
             setTemplate(r.data);
             if (error) setError('');
         }
         catch (e: any) {
-            setError(e.response?.data?.error || 'ไม่พบเทมเพลตนี้');
+            console.error('TplErr:', e);
+            setError(e.response?.data?.error || 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณารอสักครู่');
         }
         finally { if (init) setLoading(false); }
     };
 
     const loadMessages = async () => {
-        try { const r = await axios.get(`${API}/public-template/template/${publicCode}/messages`); setMessages(r.data); } catch { /* */ }
+        try {
+            const r = await axios.get(`${API}/public-template/template/${publicCode}/messages`, { timeout: 8000 });
+            setMessages(r.data);
+        } catch (e) { console.warn('MsgErr:', e); }
     };
 
     const handleDelete = (id: string, e: React.MouseEvent) => {
@@ -466,7 +476,10 @@ export default function PublicScheduler() {
 
             <main className="g-body">
                 <section className="g-panel">
-                    <div className="g-panel-head"><div className="g-panel-title"><PencilLine size={18} /><span>สร้างรายการใหม่</span></div></div>
+                    <div className="g-panel-head">
+                        <div className="g-panel-title"><PencilLine size={18} /><span>สร้างรายการใหม่</span></div>
+                        <button className="g-btn-ref" onClick={() => { loadTemplate(true); loadMessages(); }}>รีเฟรช</button>
+                    </div>
 
                     <div className="g-scroll-box">
                         <form onSubmit={submit} className="g-form">

@@ -43,8 +43,9 @@ app.use((req, res, next) => {
 });
 
 // Serve uploaded files
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+console.log('📁 Serving static uploads from:', uploadDir);
 app.use('/uploads', express.static(uploadDir));
 
 // API Routes
