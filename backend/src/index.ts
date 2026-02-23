@@ -64,6 +64,17 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root route - redirect to public scheduler or show status
+app.get('/', (req, res) => {
+    // If you have a default public code, you can redirect there:
+    // res.redirect('https://lineauto-frontend.onrender.com/schedule/your-default-code');
+    res.json({
+        name: 'GoldSync AutoBot API',
+        status: 'online',
+        message: 'Backend is running. Please use the frontend to interact.'
+    });
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('Error:', err);
