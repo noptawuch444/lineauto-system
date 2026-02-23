@@ -10,15 +10,23 @@ import {
 } from 'lucide-react';
 import './PublicScheduler.css';
 
+const getBaseUrl = () => {
+    const api = import.meta.env.VITE_API_URL || '';
+    if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+    if (typeof window !== 'undefined') return window.location.origin;
+    return '';
+};
+
 const API = import.meta.env.VITE_API_URL || '/api';
-const SERVER_URL = API.replace(/\/api$/, ''); // Derived server root (e.g. https://domain.com)
+const SERVER_URL = getBaseUrl();
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
 
 /** Resolve relative image URLs to absolute using SERVER_URL */
 const getImgUrl = (url?: string | null) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${SERVER_URL}${cleanUrl}`;
 };
 
 interface Template {

@@ -81,7 +81,11 @@ router.post('/upload', upload.single('image'), async (req, res) => {
             fs.unlinkSync(path.join(uploadDir, req.file.filename));
             res.json({ url: resImg.url });
         } else {
-            res.json({ url: `/uploads/${req.file.filename}`, fallback: true });
+            const host = req.get('host');
+            const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+            const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+            const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+            res.json({ url: `${cleanBaseUrl}/uploads/${req.file.filename}`, fallback: true });
         }
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

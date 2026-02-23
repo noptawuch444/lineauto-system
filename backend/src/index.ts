@@ -3,6 +3,7 @@ import cors from 'cors';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 // Force global timezone to Bangkok for all date/time operations
 process.env.TZ = 'Asia/Bangkok';
@@ -42,7 +43,9 @@ app.use((req, res, next) => {
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadDir = process.env.UPLOAD_DIR || './uploads';
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+app.use('/uploads', express.static(uploadDir));
 
 // API Routes
 app.use('/api/messages', messageRoutes);

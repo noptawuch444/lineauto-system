@@ -2,13 +2,20 @@ import React, { useState } from 'react';
 import { ScheduledMessage } from '../types';
 import { format } from 'date-fns';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-const SERVER_URL = API_URL.replace(/\/api$/, '');
+const getBaseUrl = () => {
+    const api = import.meta.env.VITE_API_URL || '';
+    if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+    if (typeof window !== 'undefined') return window.location.origin;
+    return '';
+};
+
+const SERVER_URL = getBaseUrl();
 
 const getImgUrl = (url?: string | null) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${SERVER_URL}${cleanUrl}`;
 };
 
 interface MessageCardProps {
