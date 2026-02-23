@@ -11,19 +11,20 @@ import {
 import './PublicScheduler.css';
 
 const getBaseUrl = () => {
-    const api = import.meta.env.VITE_API_URL || '';
-    if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+    // Priority 1: Explicitly set API URL from env
+    const api = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
+    if (api.startsWith('http')) return api.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+    // Priority 2: Current origin (if backend and frontend are on same domain)
     if (typeof window !== 'undefined') {
         const origin = window.location.origin;
-        // Local dev proxy fix
         if (origin.includes(':5173')) return origin.replace(':5173', ':3000');
-        // ngrok/Render same-domain serving
         return origin;
     }
     return '';
 };
 
-const API = import.meta.env.VITE_API_URL || '/api';
+const API = import.meta.env.VITE_API_URL || (getBaseUrl() + '/api');
 const SERVER_URL = getBaseUrl();
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
 

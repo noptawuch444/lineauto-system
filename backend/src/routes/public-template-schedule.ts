@@ -81,8 +81,9 @@ router.post('/upload', upload.single('image'), async (req, res) => {
             fs.unlinkSync(path.join(uploadDir, req.file.filename));
             res.json({ url: resImg.url });
         } else {
-            // Return root-relative path. Frontend and Backend resolution handles the rest.
-            res.json({ url: `/uploads/${req.file.filename}`, fallback: true });
+            const { getBaseUrl } = await import('../services/lineService');
+            const baseUrl = getBaseUrl(req);
+            res.json({ url: `${baseUrl}/uploads/${req.file.filename}`, fallback: true });
         }
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

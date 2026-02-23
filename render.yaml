@@ -36,11 +36,12 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
+      - key: VITE_API_URL
+        fromContext: instanceUrl
+        serviceName: lineauto-backend
       - key: VITE_API_BASE_URL
         fromContext: instanceUrl
         serviceName: lineauto-backend
-      - key: VITE_API_URL
-        value: https://lineauto-system.onrender.com/api
       - key: VITE_LIFF_ID
         value: 2009100955-fELJrTiq
 

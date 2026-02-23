@@ -109,7 +109,7 @@ export async function sendTextMessage(
  * Send image messages (single or multiple) with optional text
  */
 /** Detect public base URL for images — important for LINE push */
-function getBaseUrl(req?: any): string {
+export function getBaseUrl(req?: any): string {
     // Priority 1: Explicitly set BASE_URL
     if (process.env.BASE_URL) return process.env.BASE_URL.replace(/\/$/, '');
 
@@ -155,17 +155,14 @@ export async function sendImageMessage(
                     return null;
                 }
 
-                // Protocol Check & Upgrade
+                // STRICK CHECK: LINE requires HTTPS for all images
                 if (fullUrl.startsWith('http://')) {
-                    // Check if it's localhost (impossible for LINE)
-                    if (fullUrl.includes('localhost') || fullUrl.includes('127.0.0.1')) {
-                        console.warn('⚠️ [LINE_URL_WARN] Image URL contains "localhost". LINE cannot fetch this. Please use a public HTTPS URL or ngrok.');
+                    // Always try to upgrade to https unless it's localhost
+                    if (!fullUrl.includes('localhost') && !fullUrl.includes('127.0.0.1')) {
+                        fullUrl = fullUrl.replace('http://', 'https://');
+                        console.log(`🔒 [LINE_URL_UPGRADE] Upgraded to HTTPS: ${fullUrl}`);
                     } else {
-                        // Upgrade to https for common deployment domains
-                        const publicDomains = ['.ngrok', '.onrender.com', '.app', '.dev', '.net', '.com'];
-                        if (publicDomains.some(d => fullUrl.toLowerCase().includes(d))) {
-                            fullUrl = fullUrl.replace('http://', 'https://');
-                        }
+                        console.warn('⚠️ [LINE_URL_WARN] Image URL contains "localhost". LINE cannot fetch this. Please use a public HTTPS URL or ngrok.');
                     }
                 }
 
