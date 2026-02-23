@@ -59,20 +59,19 @@ app.use('/api/liff', liffScheduleRoutes);
 app.use('/api/admin/templates', adminTemplateRoutes);
 app.use('/api/bots', botRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+    res.json({
+        message: '🚀 GoldSync AutoBot API is Running',
+        status: 'online',
+        timezone: process.env.TZ,
+        time: new Date().toLocaleString('th-TH')
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Root route - redirect to public scheduler or show status
-app.get('/', (req, res) => {
-    // If you have a default public code, you can redirect there:
-    // res.redirect('https://lineauto-frontend.onrender.com/schedule/your-default-code');
-    res.json({
-        name: 'GoldSync AutoBot API',
-        status: 'online',
-        message: 'Backend is running. Please use the frontend to interact.'
-    });
 });
 
 // Error handling middleware
