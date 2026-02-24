@@ -59,50 +59,42 @@ export async function checkAndSendMessages() {
                     ? (() => { try { return JSON.parse(message.imageUrls!); } catch { return message.imageUrls; } })()
                     : undefined;
 
-                const sendPromise = sendScheduledMessage(
-                    message.targetType,
-                    targetIds,
-                    message.content,
-                    message.imageUrl || undefined,
-                    imageUrls,
-                    message.channelAccessToken || undefined,
-                    message.imageFirst,
-                    message.botId || undefined
+                const result = await withTimeout(
+                    sendScheduledMessage(
+                        message.targetType,
+                        targetIds,
+                        message.content,
+                        message.imageUrl || undefined,
+                        imageUrls,
+                        message.channelAccessToken || undefined,
+                        message.imageFirst,
+                        message.botId || undefined
+                    ),
+                    SEND_TIMEOUT_MS,
+                    `msg:${message.id}`
                 );
 
-                const result = await withTimeout(sendPromise, SEND_TIMEOUT_MS, `msg:${message.id}`);
                 finalStatus = result.success ? 'sent' : 'failed';
                 errorMessage = result.success ? null : (result.error || 'Unknown error');
 
-                if (result.success) {
-                    console.log(`✅ [SCHEDULER] Message ${message.id} sent successfully`);
-                } else {
-                    console.warn(`⚠️ [SCHEDULER] Message ${message.id} failed: ${errorMessage}`);
-                }
+                if (result.success) console.log(`✅ [SCHEDULER] ${message.id} sent`);
+                else console.warn(`⚠️ [SCHEDULER] ${message.id} failed: ${errorMessage}`);
             } catch (err: any) {
-                console.error(`💥 [Critical] Message ${message.id}:`, err.message);
+                console.error(`💥 [Critical] ${message.id}:`, err.message);
                 errorMessage = err.message;
             }
 
-            // Persist result with retry on DB failure
+            // Persist result — retry on DB transient failure
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
                     await prisma.$transaction([
-                        prisma.scheduledMessage.update({
-                            where: { id: message.id },
-                            data: { status: finalStatus }
-                        }),
-                        prisma.messageLog.create({
-                            data: { messageId: message.id, status: finalStatus, error: errorMessage }
-                        })
+                        prisma.scheduledMessage.update({ where: { id: message.id }, data: { status: finalStatus } }),
+                        prisma.messageLog.create({ data: { messageId: message.id, status: finalStatus, error: errorMessage } })
                     ]);
-                    break; // Success — exit retry loop
+                    break;
                 } catch (dbErr: any) {
-                    if (attempt === 2) {
-                        console.error(`❌ DB Sync FINAL FAIL for ${message.id}:`, dbErr.message);
-                    } else {
-                        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-                    }
+                    if (attempt === 2) console.error(`❌ DB Sync FINAL FAIL ${message.id}:`, dbErr.message);
+                    else await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
                 }
             }
         }
@@ -125,11 +117,10 @@ export async function checkAndSendMessages() {
  * Initialize the cron scheduler (every 10 seconds)
  */
 export function initScheduler() {
-    cron.schedule('*/10 * * * * *', () => {
+    cron.schedule('*/15 * * * * *', () => {
         checkAndSendMessages().catch(err => {
             console.error('[SCHEDULER UNHANDLED]', err.message);
         });
     });
-
-    console.log('🚀 Scheduler initialized — checking every 10s');
+    console.log('🚀 Scheduler initialized — checking every 15s');
 }

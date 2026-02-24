@@ -110,7 +110,7 @@ export default function PublicScheduler() {
         const iv = setInterval(() => {
             loadTemplate(false);
             loadMessages();
-        }, 8000); // 8 seconds for regular status updates
+        }, 15000); // 15 seconds — reduced API load
         return () => clearInterval(iv);
     }, [publicCode]);
 
@@ -137,7 +137,7 @@ export default function PublicScheduler() {
         return () => clearInterval(timerIv);
     }, [template]);
 
-    // Snowfall Effect
+    // Snowfall Effect — pauses when tab is hidden to save CPU
     useEffect(() => {
         if (loading || error) return;
         const canvas = canvasRef.current;
@@ -146,53 +146,49 @@ export default function PublicScheduler() {
         if (!ctx) return;
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
-        const flakeCount = 50; // Reduced from 100 to 50 (50% less)
-        const flakes: { x: number; y: number; r: number; d: number; s: number; color: string }[] = [];
-        const goldShades = ['rgba(243, 207, 138, 0.8)', 'rgba(201, 168, 76, 0.9)', 'rgba(255, 235, 180, 0.7)', 'rgba(180, 140, 50, 0.9)'];
-        for (let i = 0; i < flakeCount; i++) {
-            flakes.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                r: Math.random() * 2.5 + 1,
-                d: Math.random() * flakeCount,
-                s: (Math.random() * 1.5 + 1) * 0.7, // Slowed down by 30%
-                color: goldShades[Math.floor(Math.random() * goldShades.length)]
-            });
-        }
+        const flakeCount = 30; // Reduced from 50 → 30
+        const goldShades = ['rgba(243,207,138,0.8)', 'rgba(201,168,76,0.9)', 'rgba(255,235,180,0.7)', 'rgba(180,140,50,0.9)'];
+        const flakes = Array.from({ length: flakeCount }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: Math.random() * 2.5 + 1,
+            d: Math.random() * flakeCount,
+            s: (Math.random() * 1.5 + 1) * 0.7,
+            color: goldShades[Math.floor(Math.random() * goldShades.length)]
+        }));
         let animId: number;
         let angle = 0;
-        const moveFlakes = () => {
-            angle += 0.01;
-            for (let i = 0; i < flakeCount; i++) {
-                const f = flakes[i];
-                f.y += f.s;
-                f.x += Math.sin(angle + f.d) * 0.5;
-                if (f.y > height) { flakes[i] = { x: Math.random() * width, y: -10, r: f.r, d: f.d, s: f.s, color: f.color }; }
-                if (f.x > width + 5) flakes[i].x = -5;
-                if (f.x < -5) flakes[i].x = width + 5;
-            }
-        };
-        const drawFlakes = () => {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, width, height);
-            for (let i = 0; i < flakeCount; i++) {
-                const f = flakes[i];
+        let paused = document.hidden;
+
+        const draw = () => {
+            if (!paused) {
+                angle += 0.01;
+                ctx.clearRect(0, 0, width, height);
                 ctx.beginPath();
-                ctx.fillStyle = f.color;
-                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
+                for (let i = 0; i < flakeCount; i++) {
+                    const f = flakes[i];
+                    f.y += f.s;
+                    f.x += Math.sin(angle + f.d) * 0.5;
+                    if (f.y > height) { f.x = Math.random() * width; f.y = -10; }
+                    if (f.x > width + 5) f.x = -5;
+                    if (f.x < -5) f.x = width + 5;
+                    ctx.moveTo(f.x + f.r, f.y);
+                    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
+                }
+                ctx.fillStyle = 'rgba(243,207,138,0.75)';
                 ctx.fill();
             }
-            moveFlakes();
-            animId = requestAnimationFrame(drawFlakes);
+            animId = requestAnimationFrame(draw);
         };
-        drawFlakes();
-        const handleResize = () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        };
+
+        draw();
+        const handleResize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
+        const handleVisibility = () => { paused = document.hidden; };
         window.addEventListener('resize', handleResize);
+        document.addEventListener('visibilitychange', handleVisibility);
         return () => {
             window.removeEventListener('resize', handleResize);
+            document.removeEventListener('visibilitychange', handleVisibility);
             cancelAnimationFrame(animId);
         };
     }, [loading, error]);
