@@ -107,7 +107,9 @@ router.post('/schedule/:publicCode', async (req, res) => {
         const { content, imageUrl, imageUrls, scheduledTime, imageFirst } = req.body;
 
         const missing = [];
-        if (!content) missing.push('content');
+        // content is required ONLY when no image is provided
+        const hasImages = (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) || !!imageUrl;
+        if (!hasImages && !content) missing.push('content หรือ รูปภาพอย่างน้อย 1 รูป');
         if (!scheduledTime) missing.push('scheduledTime');
         if (missing.length > 0) return res.status(400).json({ error: `Missing: ${missing.join(', ')}` });
 

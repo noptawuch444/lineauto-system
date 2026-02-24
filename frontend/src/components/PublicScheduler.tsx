@@ -347,7 +347,7 @@ export default function PublicScheduler() {
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (processing) return showToast('กรุณารอรูปภาพประมวลผลเสร็จสิ้น', 'warn');
-        if (!text.trim()) return showToast('กรุณาใส่ข้อความ', 'warn');
+        if (!text.trim() && files.length === 0) return showToast('กรุณาใส่ข้อความ หรืออัปโหลดรูปภาพอย่างน้อย 1 รูป', 'warn');
         if (!scheduledTime) return showToast('กรุณาเลือกเวลาส่ง', 'warn');
         try {
             setSending(true);
@@ -517,8 +517,16 @@ export default function PublicScheduler() {
                     <div className="g-scroll-box">
                         <form onSubmit={submit} className="g-form">
                             <div className="g-fg g-fg-grow">
-                                <label>ข้อความ <span className="g-counter">({text.length} ตัวอักษร)</span></label>
-                                <textarea value={text} onChange={e => setText(e.target.value)} placeholder="พิมพ์ข้อความที่ต้องการส่ง..." className="g-ta" />
+                                <label>
+                                    ข้อความ <span className="g-counter">({text.length} ตัวอักษร)</span>
+                                    {files.length > 0 && <span className="g-optional-badge">ไม่บังคับ</span>}
+                                </label>
+                                <textarea
+                                    value={text}
+                                    onChange={e => setText(e.target.value)}
+                                    placeholder={files.length > 0 ? "ใส่ข้อความหรือเว้นว่างไว้ (ส่งรูปอย่างเดียวได้)" : "พิมพ์ข้อความที่ต้องการส่ง..."}
+                                    className="g-ta"
+                                />
                             </div>
                             <div className="g-fg">
                                 <label>รูปภาพ <span className="g-counter">({files.length}/3)</span></label>
