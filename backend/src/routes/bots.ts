@@ -144,4 +144,43 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/bots/:id/quota — Get message quota info from LINE for a specific bot
+ */
+router.get('/:id/quota', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const bot = await prisma.lineBot.findUnique({ where: { id } });
+        if (!bot) return res.status(404).json({ error: 'Bot not found' });
+
+        const client = new Client({ channelAccessToken: bot.channelAccessToken });
+        const axios = (await import('axios')).default;
+
+        const headers = { Authorization: `Bearer ${bot.channelAccessToken}` };
+
+        // Fetch quota limit and consumption in parallel
+        const [quotaRes, usageRes] = await Promise.all([
+            axios.get('https://api.line.me/v2/bot/message/quota', { headers }),
+            axios.get('https://api.line.me/v2/bot/message/quota/consumption', { headers })
+        ]);
+
+        const quotaType = quotaRes.data.type; // 'none' or 'limited'
+        const quotaLimit = quotaType === 'limited' ? quotaRes.data.value : null;
+        const totalUsage = usageRes.data.totalUsage;
+
+        res.json({
+            botId: id,
+            botName: bot.name,
+            quotaType,
+            quotaLimit,
+            totalUsage,
+            remaining: quotaLimit ? quotaLimit - totalUsage : null,
+            percentUsed: quotaLimit ? Math.round((totalUsage / quotaLimit) * 100) : 0
+        });
+    } catch (error: any) {
+        console.error('Error fetching quota:', error.response?.data || error.message);
+        res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลโควตาได้', detail: error.response?.data || error.message });
+    }
+});
+
 export default router;

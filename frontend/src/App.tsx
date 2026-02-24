@@ -1,10 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
-import { Database, LogOut, Bot } from 'lucide-react';
+import { Database, LogOut, Bot, BarChart3 } from 'lucide-react';
 import './App.css';
 import TemplateManagement from './components/TemplateManagement';
 import PublicScheduler from './components/PublicScheduler';
 import LoginPage from './components/LoginPage';
 import BotManagement from './components/BotManagement';
+import QuotaDashboard from './components/QuotaDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { useState } from 'react';
 
@@ -36,7 +37,7 @@ function App() {
 
 function AdminApp() {
     const { logout } = useAuth();
-    const [activeTab, setActiveTab] = useState<'templates' | 'bots'>('templates');
+    const [activeTab, setActiveTab] = useState<'templates' | 'bots' | 'quota'>('templates');
 
     return (
         <div className="app">
@@ -75,18 +76,25 @@ function AdminApp() {
                             className={`admin-tab ${activeTab === 'templates' ? 'active' : ''}`}
                             onClick={() => setActiveTab('templates')}
                         >
-                            <Database size={16} /> เทมเพลต & การจอง
+                            <Database size={16} /> เทมเพลต &amp; การจอง
                         </button>
                         <button
                             className={`admin-tab ${activeTab === 'bots' ? 'active' : ''}`}
                             onClick={() => setActiveTab('bots')}
                         >
-                            <Bot size={16} /> จัดการบอทหลายตัว (Multi-Bot)
+                            <Bot size={16} /> จัดการบอท (Multi-Bot)
+                        </button>
+                        <button
+                            className={`admin-tab ${activeTab === 'quota' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('quota')}
+                        >
+                            <BarChart3 size={16} /> โควตาข้อความ
                         </button>
                     </div>
                     <div className="admin-content">
                         {activeTab === 'templates' && <TemplateManagement />}
                         {activeTab === 'bots' && <BotManagement />}
+                        {activeTab === 'quota' && <QuotaDashboard />}
                     </div>
                 </div>
             </div>
