@@ -28,6 +28,41 @@ const API = import.meta.env.VITE_API_URL || (getBaseUrl() + '/api');
 const SERVER_URL = getBaseUrl();
 const CONTACT_LINK = 'https://line.me/R/ti/p/@your_id';
 
+// ImgBB API Key - used for direct browser uploads (faster, no backend round-trip)
+const IMGBB_KEY = 'b2285e5c017d5cac2c3ac8883a747748';
+
+/** Upload a File directly to ImgBB from the browser */
+const uploadToImgBB = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+        reader.onload = async (e) => {
+            try {
+                const base64 = (e.target?.result as string).split(',')[1];
+                const fd = new FormData();
+                fd.append('key', IMGBB_KEY);
+                fd.append('image', base64);
+
+                const resp = await axios.post(
+                    'https://api.imgbb.com/1/upload',
+                    fd,
+                    { timeout: 30000 }
+                );
+
+                if (resp.data?.success && resp.data?.data?.url) {
+                    resolve(resp.data.data.url);
+                } else {
+                    reject(new Error('ImgBB upload ล้มเหลว'));
+                }
+            } catch (err: any) {
+                const msg = err.response?.data?.error?.message || err.message || 'ImgBB upload ล้มเหลว';
+                reject(new Error(msg));
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+};
+
 /** Resolve relative image URLs to absolute using SERVER_URL */
 const getImgUrl = (url?: string | null) => {
     if (!url) return '';
@@ -319,30 +354,18 @@ export default function PublicScheduler() {
             const urls: string[] = [];
 
             if (files.length > 0) {
-                console.log(`📤 Uploading ${files.length} image(s)...`);
                 for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    showToast(`กำลังอัปโหลดรูป ${i + 1}/${files.length}...`, 'warn');
-                    const fd = new FormData();
-                    fd.append('image', file);
+                    showToast(`📤 กำลังอัปโหลดรูป ${i + 1}/${files.length}...`, 'warn');
                     try {
-                        const r = await axios.post(`${API}/public-template/upload`, fd, {
-                            timeout: 30000,
-                            headers: { 'Content-Type': 'multipart/form-data' }
-                        });
-                        if (r.data.url) {
-                            console.log(`✅ Uploaded [${i + 1}]:`, r.data.url);
-                            urls.push(r.data.url);
-                        }
+                        const url = await uploadToImgBB(files[i]);
+                        urls.push(url);
+                        console.log(`✅ Uploaded [${i + 1}]:`, url);
                     } catch (uploadErr: any) {
-                        const errMsg = uploadErr.response?.data?.error || uploadErr.message || 'อัปโหลดรูปไม่สำเร็จ';
-                        console.error(`❌ Upload failed [${i + 1}]:`, errMsg);
-                        throw new Error(`อัปโหลดรูปที่ ${i + 1} ล้มเหลว: ${errMsg}`);
+                        throw new Error(`อัปโหลดรูปที่ ${i + 1} ล้มเหลว: ${uploadErr.message}`);
                     }
                 }
             }
 
-            console.log('📅 Creating schedule task...');
             await axios.post(`${API}/public-template/schedule/${publicCode}`, {
                 content: text,
                 imageUrl: urls[0] || null,
@@ -351,7 +374,6 @@ export default function PublicScheduler() {
                 imageFirst: imageFirst
             }, { timeout: 15000 });
 
-            console.log('🚀 Schedule created successfully!');
             clearForm();
             loadMessages();
             showToast('ตั้งเวลาส่งข้อความเรียบร้อยแล้ว!', 'ok');
